@@ -40,7 +40,7 @@ library(tidylog)
 ```{r load in data, warning=FALSE}
 
 #Loading in data set
-IndBehav<- read_csv("VIEProject/VIEBehavior_20210913_V2.csv", 
+IndBehav<- read_csv("VIEBehavior_20210913_V2.csv", 
     col_types = cols(fishID = col_character(), 
          Infection = col_character(), InfDate = col_character(), 
          BehavGroup = col_character(), dayofinf = col_character(), 
@@ -84,7 +84,7 @@ MaleOnly<-IndBehav1 %>%
 #####Preinfection SMI#####
 
 #PreinfectionSMI for females
-#To calculate the SMI we take the SMA slope 
+#To calculate the SMI we take the OLS slope 
 lmodel2(log(as.numeric(PreWeight)+1)~log(as.numeric(PreLength)+1), data=FemaleOnly)
 #Take the median length from summary
 summary(FemaleOnly$PreLength)
@@ -133,7 +133,7 @@ IndBehav2<- rbind(FemaleOnly, MaleOnly)
 #Calulating the behavioral tolerance metrics were interested in for our analysis
 
 #Random slope from random effects model
-#Random effects model with random slope for each fish by worm burden prior to measuring its activity. This slope is the tolerance an individual has to changing its behavior as infeciton increases. The slope of the behavior is the individuals behavioral vigor, or its pre-infection behavior
+#Random effects model with random slope for each fish by worm burden prior to measuring its activity. This slope is the tolerance an individual has to changing its behavior as infection increases. The slope of the behavior is the individuals behavioral vigor, or its pre-infection behavior
 BehavTolLM<-lmer(Velocity~(Wormbf|fishID), IndBehav2)
 summary(BehavTolLM)
 #Extracting the intercept and slope from the linear mixed model
