@@ -1,0 +1,206 @@
+---
+title: "TolVigandResil_20230223"
+author: "David R. Clark, Jason Walsman, Rachael Kramp, and Jessica Stephenson"
+date: "2024-02-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Set so that long lines in R will be wrapped:
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+
+
+
+```{r packages and loading in dataset, message=FALSE, warning=FALSE}
+#Clear the working environment
+rm(list=ls())
+#Visualization
+library(ggplot2)
+library(visreg)
+source("http://highstat.com/Books/BGS/GAMM/RCodeP2/HighstatLibV6.R")
+#(generalized) Linear mixed modeling
+library(lme4)
+library(glmmTMB)
+library(lmodel2)
+#Statistcal analysis reporting and model validation
+library(performance)
+library(car)
+library(lmtest)
+library(DHARMa)
+#Data wrangling
+library(dplyr)
+library(plyr)
+library(tidyverse)
+library(tidylog)
+
+```
+
+```{r load in data, warning=FALSE}
+
+#Loading in data set
+IndBehav<- read_csv("VIEProject/VIEBehavior_20210913_V2.csv", 
+    col_types = cols(fishID = col_character(), 
+         Infection = col_character(), InfDate = col_character(), 
+         BehavGroup = col_character(), dayofinf = col_character(), 
+         CountDay = col_character(), Behavdate = col_character(), 
+         TOD = col_character(), Duration=col_double(),Velocity=col_double(),Distance=col_double()))
+
+#Filtering Data set so we can perform our analysis
+IndBehav1<-IndBehav %>%
+  #Removing columns we dont need
+  select(-c(Blind.ID, fishID...19, TrialTime...31, AUC2...37, InfLength, Recov...40,Ratebf...48, LateLength, dayofinf, Countintial, Notes, InfWeight))%>%
+  #Renaming some of the columns with funky names for ease of coding and naming
+  rename(fishID = fishID...2, AUC=AUC2...21, TrialTime=TrialTime...23, Ratebf=Ratebf...24, Recov=Recov...25)
+
+```
+```{r calculating the body metrics, warning=FALSE}
+
+
+IndBehav1<-IndBehav %>%
+  select(-c(Blind.ID, fishID...19, TrialTime...31, AUC2...37, InfLength, Recov...40,Ratebf...48, LateLength, dayofinf, Countintial, Notes, InfWeight))%>%
+  rename(fishID = fishID...2, AUC=AUC2...21, TrialTime=TrialTime...23, Ratebf=Ratebf...24, Recov=Recov...25)
+
+#####This code is just to examine how many fish cleared their infection (13)####
+# IndBehavRec<- IndBehav1 %>%
+#   filter(Recov==1)%>%
+#   filter(Fish==1)
+
+
+#####This code is just to examine how many fish died during their infection (2)#####
+ # IndBehavDead<- IndBehav1 %>%
+ #   filter(Died==1)%>%
+ #   filter(Fish==1)
+
+FemaleOnly<-IndBehav1 %>%
+  filter(Sex == 'F')
+  
+MaleOnly<-IndBehav1 %>%
+  filter(Sex == 'M')
+
+
+#Calculating SMI metrics
+#####Preinfection SMI#####
+
+#PreinfectionSMI for females
+#To calculate the SMI we take the SMA slope 
+lmodel2(log(as.numeric(PreWeight)+1)~log(as.numeric(PreLength)+1), data=FemaleOnly)
+#Take the median length from summary
+summary(FemaleOnly$PreLength)
+#Adding PreSMI to Dataframe
+FemaleOnly <- FemaleOnly %>%
+  mutate(PreSMI = PreWeight*((20.20/PreLength)^0.4206982))
+
+#PreinfectionSMI for males
+lmodel2(log(as.numeric(PreWeight)+1)~log(as.numeric(PreLength)+1), data=MaleOnly)
+#Take the median length from summary
+summary(MaleOnly$PreLength)
+#Adding PreSMI to Dataframe
+MaleOnly <- MaleOnly %>%
+  mutate(PreSMI = PreWeight*((15.30/PreLength)^0.1938185))
+
+
+#####Late Infection SMI####
+
+#Late infection SMI for females
+#Take OLS slope from this model
+lmodel2(log(as.numeric(LateWeight)+1)~log(as.numeric(PreLength)+1), data=FemaleOnly)
+#Take the median length from summary
+summary(FemaleOnly$PreLength)
+#Adding PreSMI to Dataframe
+FemaleOnly <- FemaleOnly %>%
+  mutate(LateSMI = PreWeight*((20.10/PreLength)^-0.5976124))
+
+#Late Infection SMI for males
+#Take OLS slope from this model
+lmodel2(log(as.numeric(LateWeight)+1)~log(as.numeric(PreLength)+1), data=MaleOnly)
+#Take the median length from summary
+summary(MaleOnly$PreLength)
+#Adding PreSMI to Dataframe
+MaleOnly <- MaleOnly %>%
+  mutate(LateSMI = PreWeight*((15.30/PreLength)^-0.472241))
+#####
+
+#Bringing the male and female dataframes together to create our overall dataframe
+IndBehav2<- rbind(FemaleOnly, MaleOnly)
+
+#View(IndBehav2)
+```
+
+```{r calculating the tolerance metrics, warning=FALSE}
+
+#Calulating the behavioral tolerance metrics were interested in for our analysis
+
+#Random slope from random effects model
+#Random effects model with random slope for each fish by worm burden prior to measuring its activity. This slope is the tolerance an individual has to changing its behavior as infeciton increases. The slope of the behavior is the individuals behavioral vigor, or its pre-infection behavior
+BehavTolLM<-lmer(Velocity~(Wormbf|fishID), IndBehav2)
+summary(BehavTolLM)
+#Extracting the intercept and slope from the linear mixed model
+betaTol <- data.frame(coef(BehavTolLM)$fishID)
+#Renaming the slope and intercept to align with our metrics
+betaTol <- betaTol %>%
+  rename(BehavTol = Wormbf, BehavVig = X.Intercept.)
+View(betaTol)
+#Creating a fishID column for combination with future dataframe
+betaTol<-cbind(fishID=rownames(betaTol), betaTol)
+#Narrowing our overall data set to one row per individual so we 
+IndBehav3 <- IndBehav2 %>%
+  filter(TOD == 2) %>%
+  select(-c(InfDiff, Fish, Behavdate, Duration, Distance, Ratebf, comp3, Totworm)) %>%
+  pivot_wider(names_from = TrialTime, values_from = c(Velocity, Wormbf)) 
+
+#subset down to infected individuals only and calculate point tolerance metrics for each timeframe. 
+IndBehav3Inf <- IndBehav3 %>%
+  filter(Infection == 1) %>%
+  mutate(ETol = Velocity_Early - Velocity_Before,
+         LTol = Velocity_Late - Velocity_Before,
+         LtrTol = Velocity_Later - Velocity_Before
+         )%>%
+  pivot_longer(cols = starts_with("Velocity"),
+    names_to = "TrialTime",
+    names_prefix = "Velocity_",
+    values_to = "Velocity"
+  )%>%
+  pivot_longer(cols=starts_with("Wormbf"),
+               names_to = "TrialTime2",
+               names_prefix = "Wormbf_",
+               values_to = "Wormbf"
+  )
+
+
+#Merging the tolerance and vigor metrics 
+IndBehav3Inf1<-merge(IndBehav3Inf, betaTol, by.x="fishID", by.y = "fishID")
+
+
+
+#Subset down to uninfected individuals and calculate their point tolerance metrics
+IndBehav3Unf <- IndBehav3 %>%
+  filter(Infection == 0)%>%
+  mutate(ETol = Velocity_Early - Velocity_Before,
+         LTol = Velocity_Late - Velocity_Before,
+         LtrTol = Velocity_Later - Velocity_Before
+         )%>%
+  pivot_longer(cols = starts_with("Velocity"),
+    names_to = "TrialTime",
+    names_prefix = "Velocity_",
+    values_to = "Velocity"
+  )%>%
+    pivot_longer(cols = starts_with("Wormbf"),
+      names_to = "TrialTime2",
+     names_prefix = "Wormbf_",
+     values_to = "Wormbf"
+   )
+# %>%
+#    select(-TrialTime2)
+
+
+
+
+
+#Point tolerance difference between values from pre to post infection
+
+
+```
+
+
