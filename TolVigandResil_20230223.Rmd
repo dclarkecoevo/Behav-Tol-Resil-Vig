@@ -128,6 +128,8 @@ IndBehav2<- rbind(FemaleOnly, MaleOnly)
 #View(IndBehav2)
 ```
 
+We are calculating behavioral tolerance through two metrics. First is a measure of behavioral tolerance using linear mixed models using slope random effects for fishID. This allows us to extract each individuals change in activity with parasite burden and therefore allow us to calculate the tolerance (fishID slope) for each individual. This also allows us to use the random effect intercept for fishID as a measure of beahvioral vigor. The second way we could caluclate these metrics are a measure of change in behavior between two points of behavior (often referred to as point tolerance, CITATION FOR THIS).  This is calculated in teh second half of the code as the change in behavior between pre-infection and early, late, and later points of infection. 
+
 ```{r calculating the tolerance metrics, warning=FALSE}
 
 #Calulating the behavioral tolerance metrics were interested in for our analysis
@@ -191,15 +193,13 @@ IndBehav3Unf <- IndBehav3 %>%
      names_prefix = "Wormbf_",
      values_to = "Wormbf"
    )
-# %>%
-#    select(-TrialTime2)
+#Creating the BehavTol and BehavVig columns for the uninfected and calculating the metric for uninfected individual so we can combine these dataframes together
+IndBehav3Unf <- IndBehav3Unf%>%
+  add_column(BehavTol=0)%>%
+  mutate(BehavVig = mean(Velocity[IndBehav3Unf$TrialTime == "Before"]))
 
-
-
-
-
-#Point tolerance difference between values from pre to post infection
-
+#Rbinding our infected and uninfected dataframes together into one overall dataframe
+IndBehav4<-rbind(IndBehav3Unf,IndBehav3Inf1)
 
 ```
 
