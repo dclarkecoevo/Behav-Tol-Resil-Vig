@@ -2,8 +2,20 @@
 title: "TolVigandResil_20230223"
 author: "David R. Clark, Jason Walsman, Rachael Kramp, and Jessica Stephenson"
 date: "2024-02-22"
-output: html_document
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+  editor_options:
+    chunk_output_type: console
+  word_document:
+    toc: yes
+header-includes:
+- \usepackage{caption}
+- \captionsetup[figure]{labelformat=empty}
 ---
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -11,7 +23,13 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
 ```
 
+\section{Introduction}
 
+\subsection{Overall summary}
+
+\subsection{Quick experimental summary}
+
+\subsection{Load in packages needed for analysis}
 
 ```{r packages and loading in dataset, message=FALSE, warning=FALSE}
 #Clear the working environment
@@ -37,6 +55,8 @@ library(tidylog)
 
 ```
 
+\subsection{Load in dataframe}
+
 ```{r load in data, warning=FALSE}
 
 #Loading in data set
@@ -55,6 +75,10 @@ IndBehav1<-IndBehav %>%
   rename(fishID = fishID...2, AUC=AUC2...21, TrialTime=TrialTime...23, Ratebf=Ratebf...24, Recov=Recov...25)
 
 ```
+\subsection{Calculate metrics needed for further analyses}
+
+\subsubsection{Calculating all body condition metrics}
+
 ```{r calculating the body metrics, warning=FALSE}
 
 
@@ -132,6 +156,8 @@ IndBehav2<- rbind(FemaleOnly, MaleOnly)
 #View(IndBehav2)
 ```
 
+\subsubsection{Calculating the behavioral tolerance metrics needed for analyses}
+
 We are calculating behavioral tolerance through two metrics. First is a measure of behavioral tolerance using linear mixed models using slope random effects for fishID. This allows us to extract each individuals change in activity with parasite burden and therefore allow us to calculate the tolerance (fishID slope) for each individual. This also allows us to use the random effect intercept for fishID as a measure of beahvioral vigor. The second way we could caluclate these metrics are a measure of change in behavior between two points of behavior (often referred to as point tolerance, CITATION FOR THIS).  This is calculated in teh second half of the code as the change in behavior between pre-infection and early, late, and later points of infection. 
 
 ```{r calculating the tolerance metrics, warning=FALSE}
@@ -163,7 +189,10 @@ IndBehav3Inf <- IndBehav3 %>%
   filter(Infection == 1) %>%
   mutate(ETol = Velocity_Early - Velocity_Before,
          LTol = Velocity_Late - Velocity_Before,
-         LtrTol = Velocity_Later - Velocity_Before
+         LtrTol = Velocity_Later - Velocity_Before,
+         ERatebf = Wormbf_Early - Wormbf_Before/5,
+         LRatebf = Wormbf_Late - Wormbf_Early/5,
+         LtrRatebf = Wormbf_Later - Wormbf_Later/5
          )%>%
   pivot_longer(cols=starts_with("Wormbf"),
                names_to = "TrialTime",
@@ -205,7 +234,10 @@ IndBehav3Unf <- IndBehav3 %>%
   filter(Infection == 0)%>%
   mutate(ETol = Velocity_Early - Velocity_Before,
          LTol = Velocity_Late - Velocity_Before,
-         LtrTol = Velocity_Later - Velocity_Before
+         LtrTol = Velocity_Later - Velocity_Before,
+         ERatebf = Wormbf_Early - Wormbf_Before/5,
+         LRatebf = Wormbf_Late - Wormbf_Early/5,
+         LtrRatebf = Wormbf_Later - Wormbf_Later/5,
          )%>%
   group_by(fishID)%>%
   pivot_longer(cols = starts_with(c("Wormbf")),
@@ -258,7 +290,29 @@ View(IndBehav4)
 
 ```
 
+Now we have to decided how best to calculate whether an individual has recovered. In the experiment only had 13 fish recover from infection totally, therefore we are thinking of another metric that indicates a fish is in recovery during infection. 
 
+\subsection{Description of data, structure, and type}
 
-
-
+\textbf{fishID}: The individual ID of each fish used in the trial. \newline
+\textbf{TrialTime}: The point of infection where each behavior trial happened. Early - early infection (6 days), Late - late in infection (12 days), Later - later in infection (18 days)\newline
+\textbf{Velocity}: The average velocity of each fish during their behavior trial ($cm/s$) \newline
+\textbf{Sex}: The sex of the individual. F - female, M - male \newline
+\textbf{PreWeight}: The weight of the individual prior to their fist behavior trial and pre-infection. ($grams$)  \newline
+\textbf{PreLength}: The length of the individual prior to their first behavior trial and pre-infection ($mm$) \newline
+\textbf{Treatment}: What treatment the fish received prior to their first behavior and pre-infection. VIE - visible implant elastomer implant, UNTOUCHED - control individual, received no injection nor implant ($mm$) \newline
+\textbf{Infection}: Whether or not the individual was infected with Gyrodactylus turnbulli. 1 - infected, 0 - uninfected \newline
+\textbf{LateWeight}: The weight of the individual after their final behavior trial and after infection. ($grams$) \newline
+\textbf{wormJump}: The number of worms that jumped from the donor fish to the trial fish during manual infections. \newline
+\textbf{AUC}: The area under the curve of infection over the total infection trajectory for each individual. \newline
+\textbf{Recov}: Whether or not the individual recovered from infection during the experimental trial. 1 - recovered, 0 - did not recover \newline
+\textbf{Died}: Whether or not the individual Died from infection during the experimental trial. 1 - Died, 0 - did not died \newline
+\textbf{PreSMI}: The body condition of the individual prior to their first behavioral trial and pre infection. ($mm/g$) \newline
+\textbf{LateSMI}: The body condition of the individual after to their last behavioral trial and after infection. ($mm/g$) \newline
+\textbf{ETol}: The change in velocity between the early infection behavioral trial and the before trial. Used as a point tolerance metric for the fish. ($cm/s$) \newline
+\textbf{LTol}: The change in velocity between the Late infection behavioral trial and the before trial. Used as a point tolerance metric for the fish. ($cm/s$) \newline
+\textbf{LtrTol}: The change in velocity between the Later infection behavioral trial and the before trial. Used as a point tolerance metric for the fish. ($cm/s$) \newline
+\textbf{Wormbf}:The number of worms on the fish prior to each trial. \newline
+\textbf{Ratebf}:The rate of growth of worms on the fish prior to each trial. \newline
+\textbf{BehavTol}:The behavioral tolerance of each individual calculated as the slope of a random effect model where fishID is the random effect term.  \newline
+\textbf{BehavVig}:The behavioral Vigor of each individual calculated as the intercept of a random effect model where fishID is the random effect term \newline
