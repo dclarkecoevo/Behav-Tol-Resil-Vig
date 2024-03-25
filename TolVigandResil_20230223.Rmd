@@ -187,9 +187,9 @@ IndBehav3 <- IndBehav2 %>%
 IndBehav3Inf <- IndBehav3 %>%
   group_by(fishID)%>%
   filter(Infection == 1) %>%
-  mutate(ETol = Velocity_Early - Velocity_Before,
-         LTol = Velocity_Late - Velocity_Before,
-         LtrTol = Velocity_Later - Velocity_Before,
+  mutate(EChBe = Velocity_Early - Velocity_Before,
+         LChBe = Velocity_Late - Velocity_Before,
+         LtrChBe = Velocity_Later - Velocity_Before,
          ERatebf = Wormbf_Early - Wormbf_Before/5,
          LRatebf = Wormbf_Late - Wormbf_Early/5,
          LtrRatebf = Wormbf_Later - Wormbf_Later/5
@@ -232,9 +232,9 @@ IndBehav4Inf2<-merge(IndBehav4Inf, IndBehavGRInf, by.x=c("fishID", "TrialTime"),
 #Creating a dataframe for calculating the tolerance metrics and then pivot longer by Wormbf
 IndBehav3Unf <- IndBehav3 %>%
   filter(Infection == 0)%>%
-  mutate(ETol = Velocity_Early - Velocity_Before,
-         LTol = Velocity_Late - Velocity_Before,
-         LtrTol = Velocity_Later - Velocity_Before,
+  mutate(EChBe = Velocity_Early - Velocity_Before,
+         LChBe = Velocity_Late - Velocity_Before,
+         LtrChBe = Velocity_Later - Velocity_Before,
          ERatebf = Wormbf_Early - Wormbf_Before/5,
          LRatebf = Wormbf_Late - Wormbf_Early/5,
          LtrRatebf = Wormbf_Later - Wormbf_Later/5,
@@ -309,9 +309,9 @@ Now we have to decided how best to calculate whether an individual has recovered
 \textbf{Died}: Whether or not the individual Died from infection during the experimental trial. 1 - Died, 0 - did not died \newline
 \textbf{PreSMI}: The body condition of the individual prior to their first behavioral trial and pre infection. ($mm/g$) \newline
 \textbf{LateSMI}: The body condition of the individual after to their last behavioral trial and after infection. ($mm/g$) \newline
-\textbf{ETol}: The change in velocity between the early infection behavioral trial and the before trial. Used as a point tolerance metric for the fish. ($cm/s$) \newline
-\textbf{LTol}: The change in velocity between the Late infection behavioral trial and the before trial. Used as a point tolerance metric for the fish. ($cm/s$) \newline
-\textbf{LtrTol}: The change in velocity between the Later infection behavioral trial and the before trial. Used as a point tolerance metric for the fish. ($cm/s$) \newline
+\textbf{EChBe}: The change in velocity between the early infection behavioral trial and the before trial. ($cm/s$) \newline
+\textbf{LChBe}: The change in velocity between the Late infection behavioral trial and the before trial. ($cm/s$) \newline
+\textbf{LtrChBe}: The change in velocity between the Later infection behavioral trial and the before trial. ($cm/s$) \newline
 \textbf{Wormbf}:The number of worms on the fish prior to each trial. \newline
 \textbf{Ratebf}:The rate of growth of worms on the fish prior to each trial. \newline
 \textbf{BehavTol}:The behavioral tolerance of each individual calculated as the slope of a random effect model where fishID is the random effect term.  \newline
