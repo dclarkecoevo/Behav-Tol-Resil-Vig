@@ -1,7 +1,7 @@
 ---
-title: "TolVigandResil_20230223"
+title: "Behavioral Tolerance, Vigor, and resilience"
 author: "David R. Clark, Jason Walsman, Rachael Kramp, and Jessica Stephenson"
-date: "2024-02-22"
+date: "2024-03-25"
 output:
   pdf_document:
     toc: yes
