@@ -173,15 +173,23 @@ betaTol <- data.frame(coef(BehavTolLM)$fishID)
 #Renaming the slope and intercept to align with our metrics
 betaTol <- betaTol %>%
   rename(BehavTol = Wormbf, BehavVig = X.Intercept.)
-View(betaTol)
 #Creating a fishID column for combination with future dataframe
 betaTol<-cbind(fishID=rownames(betaTol), betaTol)
+
+#Calculating the mean and variance in velocity per day, per fish
+
+IndBehav2 <- IndBehav2%>%
+  drop_na(Velocity)%>%
+  group_by(fishID,TrialTime)%>%
+  select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end,TOD,day, linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))%>%
+  summarise( AvgVel = mean(Velocity), VarVel=var(Velocity))
+
+
+
 #Narrowing our overall data set to one row per individual
 IndBehav3 <- IndBehav2 %>%
-  group_by(fishID, TrialTime)%>%
-  filter(TOD == 2) %>%
-  select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end)) %>%
-  pivot_wider(names_from = TrialTime, values_from = c(Velocity, Wormbf, Ratebf))
+  group_by(TrialTime, fishID, add=TRUE)%>%
+  pivot_wider(names_from = TrialTime, values_from = c( Wormbf, Ratebf, AvgVel,VarVel))
 
 #subset down to infected individuals only and calculate point tolerance metrics for each timeframe. 
 IndBehav3Inf <- IndBehav3 %>%
