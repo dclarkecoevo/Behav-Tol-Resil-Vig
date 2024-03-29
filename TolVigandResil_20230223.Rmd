@@ -178,49 +178,87 @@ betaTol<-cbind(fishID=rownames(betaTol), betaTol)
 
 #Calculating the mean and variance in velocity per day, per fish
 
-IndBehav2 <- IndBehav2%>%
+#We need to split the dataframes into the differnet time periods to calculate averages since mutate isnt splitting by TrialTime. 
+
+#creating a dataframe to calculate the mean and variance of velocity for before measurements. 
+
+InBehavBefore<- IndBehav2%>%
   drop_na(Velocity)%>%
-  group_by(fishID,TrialTime)%>%
+  filter(TrialTime == "Before")%>%
   select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end,TOD,day, linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))%>%
-  summarise( AvgVel = mean(Velocity), VarVel=var(Velocity))
+  mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
+  distinct(fishID, .keep_all=TRUE)
+  
+#creating a dataframe to calculate the mean and variance of velocity for early measurements. 
+
+InBehavEarly<- IndBehav2%>%
+  drop_na(Velocity)%>%
+  filter(TrialTime == "Early")%>%
+  select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end,TOD,day, linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))%>%
+  mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
+  distinct(fishID, .keep_all=TRUE)
 
 
+#creating a dataframe to calculate the mean and variance of velocity for Late measurements. 
 
-#Narrowing our overall data set to one row per individual
-IndBehav3 <- IndBehav2 %>%
+InBehavLate<- IndBehav2%>%
+  drop_na(Velocity)%>%
+  filter(TrialTime == "Late")%>%
+  select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end,TOD,day, linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))%>%
+  mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
+  distinct(fishID, .keep_all=TRUE)
+
+#creating a dataframe to calculate the mean and variance of velocity for Later measurements. 
+
+InBehavLater<- IndBehav2%>%
+  drop_na(Velocity)%>%
+  filter(TrialTime == "Later")%>%
+  select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end,TOD,day, linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))%>%
+  mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
+  distinct(fishID, .keep_all=TRUE)
+
+#Adding these dataframes together to create one large one
+
+IndBehav3<-rbind(InBehavBefore, InBehavEarly, InBehavLate, InBehavLater)
+
+
+#Pivoting wider so I can subtract velocity changes between periods to get change in behaivor
+IndBehav4 <- IndBehav3 %>%
   group_by(TrialTime, fishID, add=TRUE)%>%
-  pivot_wider(names_from = TrialTime, values_from = c( Wormbf, Ratebf, AvgVel,VarVel))
+  select(-Velocity)%>%
+  pivot_wider(names_from = TrialTime, values_from = c( Wormbf, Ratebf, AvgVel,VarVel))%>%
+  rename(Velocity)
 
 #subset down to infected individuals only and calculate point tolerance metrics for each timeframe. 
-IndBehav3Inf <- IndBehav3 %>%
+IndBehav4Inf <- IndBehav4 %>%
   group_by(fishID)%>%
   filter(Infection == 1) %>%
-  mutate(EChBe = Velocity_Early - Velocity_Before,
-         LChBe = Velocity_Late - Velocity_Before,
-         LtrChBe = Velocity_Later - Velocity_Before,
-         ERatebf = Wormbf_Early - Wormbf_Before/5,
-         LRatebf = Wormbf_Late - Wormbf_Early/5,
-         LtrRatebf = Wormbf_Later - Wormbf_Later/5
+  mutate(EChBe = AvgVel_Early - AvgVel_Before,
+         LChBe = AvgVel_Late - AvgVel_Before,
+         LtrChBe = AvgVel_Later - AvgVel_Before,
+         ERatebf = Wormbf_Early - Wormbf_Before/6,
+         LRatebf = Wormbf_Late - Wormbf_Early/6,
+         LtrRatebf = Wormbf_Later - Wormbf_Later/6
          )%>%
   pivot_longer(cols=starts_with("Wormbf"),
                names_to = "TrialTime",
                names_prefix = "Wormbf_",
                values_to = "Wormbf")%>%
-  select(-c(Velocity_Before, Velocity_Early, Velocity_Late, Velocity_Later, Ratebf_Before,Ratebf_Early,Ratebf_Late,Ratebf_Later))%>%
+  select(-c(AvgVel_Before, AvgVel_Early, AvgVel_Late, AvgVel_Later, Ratebf_Before,Ratebf_Early,Ratebf_Late,Ratebf_Later))%>%
   filter(fishID != 44)
 #Make two dataframes with pivot longer for wormbf and velocity then merge them together on fishID and TrialTime
-IndBehav3InfV<-IndBehav3 %>%
+IndBehav4InfV<-IndBehav4 %>%
    filter(Infection == 1) %>%
-  pivot_longer(cols = starts_with("Velocity"),
+  pivot_longer(cols = starts_with("AvgVel"),
     names_to = "TrialTime",
-    names_prefix = "Velocity_",
-    values_to = "Velocity"
+    names_prefix = "AvgVel_",
+    values_to = "AvgVel"
   )%>%
-  select(fishID, Velocity, TrialTime)%>%
+  select(fishID, AvgVel, TrialTime)%>%
   filter(fishID != 44 )
 
 #Making the growth rate columns into one column for infected individuals
-IndBehavGRInf <- IndBehav3 %>%
+IndBehavGRInf <- IndBehav4 %>%
   filter(Infection == 1) %>%
   pivot_longer(cols = starts_with("Ratebf"),
       names_to = "TrialTime",
@@ -229,13 +267,39 @@ IndBehavGRInf <- IndBehav3 %>%
    )%>%
   select(fishID,TrialTime, Ratebf)
 
+#Making the new growth rate columns into one column for infected individuals
+IndBehavNGRInf <- IndBehav4Inf %>%
+  select(fishID, ERatebf, LRatebf, LtrRatebf)%>%
+  rename(NRatebf_Early = ERatebf, NRatebf_Late = LRatebf, NRatebf_Later = LtrRatebf)%>%
+  add_column(NRatebf_Before = 0)%>%
+  pivot_longer(cols = starts_with("NRatebf"),
+      names_to = "TrialTime",
+     names_prefix = "NRatebf_",
+     values_to = "NRatebf"
+   )%>%
+  select(fishID,TrialTime, NRatebf)%>%
+  distinct(fishID,TrialTime, .keep_all=TRUE)
+
+#Making the Variance columns into one column for infected individuals
+IndBehavVarInf <- IndBehav4Inf %>%
+  select(-TrialTime)%>%
+  pivot_longer(cols = starts_with("VarVel"),
+      names_to = "TrialTime",
+     names_prefix = "VarVel_",
+     values_to = "VarVel"
+   )%>%
+  select(fishID,TrialTime, VarVel)%>%
+  distinct(fishID,TrialTime, .keep_all=TRUE)
+
 
 #Merging the tolerance and vigor metrics 
-IndBehav3Inf1<-merge(IndBehav3Inf, betaTol, by.x="fishID", by.y = "fishID")
+IndBehav4Inf1<-merge(IndBehav4Inf, betaTol, by.x="fishID", by.y = "fishID")
 
 #Merge the two dataframes together based on the fishID and TrialTime to get all variables we want into one dataframe
-IndBehav4Inf<-merge(IndBehav3InfV, IndBehav3Inf1, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
-IndBehav4Inf2<-merge(IndBehav4Inf, IndBehavGRInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Inf<-merge(IndBehav4InfV, IndBehav4Inf1, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Inf2<-merge(IndBehav5Inf, IndBehavGRInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Inf3<-merge(IndBehav5Inf2, IndBehavNGRInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Inf4<-merge(IndBehav5Inf3, IndBehavVarInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 #Subset down to uninfected individuals and calculate their point tolerance metrics
 #Creating a dataframe for calculating the tolerance metrics and then pivot longer by Wormbf
 IndBehav3Unf <- IndBehav3 %>%
