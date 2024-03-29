@@ -165,22 +165,22 @@ We are calculating behavioral tolerance through two metrics. First is a measure 
 #Calulating the behavioral tolerance metrics were interested in for our analysis
 
 #Random slope from random effects model
-#Random effects model with random slope for each fish by worm burden prior to measuring its activity. This slope is the tolerance an individual has to changing its behavior as infection increases. The slope of the behavior is the individuals behavioral vigor, or its pre-infection behavior
+#####Random effects model with random slope for each fish by worm burden prior to measuring its activity. This slope is the tolerance an individual has to changing its behavior as infection increases. The slope of the behavior is the individuals behavioral vigor, or its pre-infection behavior#####
 BehavTolLM<-lmer(Velocity~(Wormbf|fishID), IndBehav2)
 summary(BehavTolLM)
-#Extracting the intercept and slope from the linear mixed model
+#####Extracting the intercept and slope from the linear mixed model####
 betaTol <- data.frame(coef(BehavTolLM)$fishID)
-#Renaming the slope and intercept to align with our metrics
+#####Renaming the slope and intercept to align with our metrics#####
 betaTol <- betaTol %>%
   rename(BehavTol = Wormbf, BehavVig = X.Intercept.)
-#Creating a fishID column for combination with future dataframe
+#####Creating a fishID column for combination with future dataframe####
 betaTol<-cbind(fishID=rownames(betaTol), betaTol)
 
 #Calculating the mean and variance in velocity per day, per fish
 
 #We need to split the dataframes into the differnet time periods to calculate averages since mutate isnt splitting by TrialTime. 
 
-#creating a dataframe to calculate the mean and variance of velocity for before measurements. 
+#####creating a dataframe to calculate the mean and variance of velocity for before measurements.#### 
 
 InBehavBefore<- IndBehav2%>%
   drop_na(Velocity)%>%
@@ -189,7 +189,7 @@ InBehavBefore<- IndBehav2%>%
   mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
   distinct(fishID, .keep_all=TRUE)
   
-#creating a dataframe to calculate the mean and variance of velocity for early measurements. 
+#####creating a dataframe to calculate the mean and variance of velocity for early measurements.##### 
 
 InBehavEarly<- IndBehav2%>%
   drop_na(Velocity)%>%
@@ -199,7 +199,7 @@ InBehavEarly<- IndBehav2%>%
   distinct(fishID, .keep_all=TRUE)
 
 
-#creating a dataframe to calculate the mean and variance of velocity for Late measurements. 
+#####creating a dataframe to calculate the mean and variance of velocity for Late measurements. #####
 
 InBehavLate<- IndBehav2%>%
   drop_na(Velocity)%>%
@@ -208,7 +208,7 @@ InBehavLate<- IndBehav2%>%
   mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
   distinct(fishID, .keep_all=TRUE)
 
-#creating a dataframe to calculate the mean and variance of velocity for Later measurements. 
+#####creating a dataframe to calculate the mean and variance of velocity for Later measurements.####
 
 InBehavLater<- IndBehav2%>%
   drop_na(Velocity)%>%
@@ -217,19 +217,18 @@ InBehavLater<- IndBehav2%>%
   mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
   distinct(fishID, .keep_all=TRUE)
 
-#Adding these dataframes together to create one large one
+####Adding these dataframes together to create one large one####
 
 IndBehav3<-rbind(InBehavBefore, InBehavEarly, InBehavLate, InBehavLater)
 
 
-#Pivoting wider so I can subtract velocity changes between periods to get change in behaivor
+#####Pivoting wider so I can subtract velocity changes between periods to get change in behavior####
 IndBehav4 <- IndBehav3 %>%
   group_by(TrialTime, fishID, add=TRUE)%>%
   select(-Velocity)%>%
-  pivot_wider(names_from = TrialTime, values_from = c( Wormbf, Ratebf, AvgVel,VarVel))%>%
-  rename(Velocity)
+  pivot_wider(names_from = TrialTime, values_from = c( Wormbf, Ratebf, AvgVel,VarVel))
 
-#subset down to infected individuals only and calculate point tolerance metrics for each timeframe. 
+#####subset down to infected individuals only and calculate point tolerance metrics for each timeframe. #####
 IndBehav4Inf <- IndBehav4 %>%
   group_by(fishID)%>%
   filter(Infection == 1) %>%
@@ -238,7 +237,7 @@ IndBehav4Inf <- IndBehav4 %>%
          LtrChBe = AvgVel_Later - AvgVel_Before,
          ERatebf = Wormbf_Early - Wormbf_Before/6,
          LRatebf = Wormbf_Late - Wormbf_Early/6,
-         LtrRatebf = Wormbf_Later - Wormbf_Later/6
+         LtrRatebf = Wormbf_Later - Wormbf_Late/6
          )%>%
   pivot_longer(cols=starts_with("Wormbf"),
                names_to = "TrialTime",
@@ -246,7 +245,7 @@ IndBehav4Inf <- IndBehav4 %>%
                values_to = "Wormbf")%>%
   select(-c(AvgVel_Before, AvgVel_Early, AvgVel_Late, AvgVel_Later, Ratebf_Before,Ratebf_Early,Ratebf_Late,Ratebf_Later))%>%
   filter(fishID != 44)
-#Make two dataframes with pivot longer for wormbf and velocity then merge them together on fishID and TrialTime
+#####Make two dataframes with pivot longer for wormbf and velocity then merge them together on fishID and TrialTime####
 IndBehav4InfV<-IndBehav4 %>%
    filter(Infection == 1) %>%
   pivot_longer(cols = starts_with("AvgVel"),
@@ -257,7 +256,7 @@ IndBehav4InfV<-IndBehav4 %>%
   select(fishID, AvgVel, TrialTime)%>%
   filter(fishID != 44 )
 
-#Making the growth rate columns into one column for infected individuals
+#####Making the growth rate columns into one column for infected individuals####
 IndBehavGRInf <- IndBehav4 %>%
   filter(Infection == 1) %>%
   pivot_longer(cols = starts_with("Ratebf"),
@@ -267,7 +266,7 @@ IndBehavGRInf <- IndBehav4 %>%
    )%>%
   select(fishID,TrialTime, Ratebf)
 
-#Making the new growth rate columns into one column for infected individuals
+#####Making the new growth rate columns into one column for infected individuals#####
 IndBehavNGRInf <- IndBehav4Inf %>%
   select(fishID, ERatebf, LRatebf, LtrRatebf)%>%
   rename(NRatebf_Early = ERatebf, NRatebf_Late = LRatebf, NRatebf_Later = LtrRatebf)%>%
@@ -280,7 +279,7 @@ IndBehavNGRInf <- IndBehav4Inf %>%
   select(fishID,TrialTime, NRatebf)%>%
   distinct(fishID,TrialTime, .keep_all=TRUE)
 
-#Making the Variance columns into one column for infected individuals
+#####Making the Variance columns into one column for infected individuals#####
 IndBehavVarInf <- IndBehav4Inf %>%
   select(-TrialTime)%>%
   pivot_longer(cols = starts_with("VarVel"),
@@ -292,24 +291,24 @@ IndBehavVarInf <- IndBehav4Inf %>%
   distinct(fishID,TrialTime, .keep_all=TRUE)
 
 
-#Merging the tolerance and vigor metrics 
+#####Merging the tolerance and vigor metrics ####
 IndBehav4Inf1<-merge(IndBehav4Inf, betaTol, by.x="fishID", by.y = "fishID")
 
-#Merge the two dataframes together based on the fishID and TrialTime to get all variables we want into one dataframe
+#####Merge the two dataframes together based on the fishID and TrialTime to get all variables we want into one dataframe#####
 IndBehav5Inf<-merge(IndBehav4InfV, IndBehav4Inf1, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 IndBehav5Inf2<-merge(IndBehav5Inf, IndBehavGRInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 IndBehav5Inf3<-merge(IndBehav5Inf2, IndBehavNGRInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 IndBehav5Inf4<-merge(IndBehav5Inf3, IndBehavVarInf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 #Subset down to uninfected individuals and calculate their point tolerance metrics
-#Creating a dataframe for calculating the tolerance metrics and then pivot longer by Wormbf
-IndBehav3Unf <- IndBehav3 %>%
+#####Creating a dataframe for calculating the tolerance metrics and then pivot longer by Wormbf####
+IndBehav4Unf <- IndBehav4 %>%
   filter(Infection == 0)%>%
-  mutate(EChBe = Velocity_Early - Velocity_Before,
-         LChBe = Velocity_Late - Velocity_Before,
-         LtrChBe = Velocity_Later - Velocity_Before,
-         ERatebf = Wormbf_Early - Wormbf_Before/5,
-         LRatebf = Wormbf_Late - Wormbf_Early/5,
-         LtrRatebf = Wormbf_Later - Wormbf_Later/5,
+  mutate(EChBe = AvgVel_Early - AvgVel_Before,
+         LChBe = AvgVel_Late - AvgVel_Before,
+         LtrChBe = AvgVel_Later - AvgVel_Before,
+         NRatebf_Early = Wormbf_Early - Wormbf_Before/5,
+         NRatebf_Late = Wormbf_Late - Wormbf_Early/5,
+         NRatebf_Later = Wormbf_Later - Wormbf_Late/5,
          )%>%
   group_by(fishID)%>%
   pivot_longer(cols = starts_with(c("Wormbf")),
@@ -317,22 +316,22 @@ IndBehav3Unf <- IndBehav3 %>%
      names_prefix = c("Wormbf_"),
      values_to="Wormbf"
    )%>%
-  select(-c(Velocity_Before, Velocity_Early, Velocity_Late, Velocity_Later, Ratebf_Before,Ratebf_Early,Ratebf_Late,Ratebf_Later))
+  select(-c(AvgVel_Before, AvgVel_Early, AvgVel_Late, AvgVel_Later, Ratebf_Before,Ratebf_Early,Ratebf_Late,Ratebf_Later))
 
 
-#Creating a second dataframe where we pivot longer for velocity
-IndBehav3UnfV <- IndBehav3 %>%
+#####Creating a second dataframe where we pivot longer for velocity####
+IndBehav4UnfV <- IndBehav4 %>%
   filter(Infection == 0)%>%
-  pivot_longer(cols = starts_with("Velocity"),
+  pivot_longer(cols = starts_with("AvgVel"),
   names_to = "TrialTime",
-  names_prefix = "Velocity_",
-  values_to = "Velocity"
+  names_prefix = "AvgVel_",
+  values_to = "AvgVel"
   )%>%
-  select(fishID, TrialTime, Velocity)
+  select(fishID, TrialTime, AvgVel)
 
 
-#Making the growth rate columns into one column for uninfected individuals
-IndBehavGRUnf <- IndBehav3 %>%
+#####Making the growth rate columns into one column for uninfected individuals#####
+IndBehavGRUnf <- IndBehav4 %>%
   filter(Infection == 0) %>%
   pivot_longer(cols = starts_with("Ratebf"),
       names_to = "TrialTime",
@@ -341,24 +340,49 @@ IndBehavGRUnf <- IndBehav3 %>%
    )%>%
   select(fishID,TrialTime, Ratebf)
 
-#Merge the two different datasets together
-IndBehav4Unf<-merge(IndBehav3UnfV, IndBehav3Unf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
-IndBehav4Unf2<-merge(IndBehav4Unf, IndBehavGRUnf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+#####Making the new growth rate columns into one column for infected individuals#####
+IndBehavNGRUnf <- IndBehav4Unf %>%
+  select(-TrialTime)%>%
+  add_column(NRatebf_Before = 0)%>%
+  pivot_longer(cols = starts_with("NRatebf"),
+      names_to = "TrialTime",
+     names_prefix = "NRatebf_",
+     values_to = "NRatebf"
+   )%>%
+  select(fishID,TrialTime, NRatebf)%>%
+  distinct(fishID,TrialTime, .keep_all=TRUE)
+
+#####Making the Variance columns into one column for infected individuals#####
+IndBehavVarUnf <- IndBehav4Unf %>%
+  select(-TrialTime)%>%
+  pivot_longer(cols = starts_with("VarVel"),
+      names_to = "TrialTime",
+     names_prefix = "VarVel_",
+     values_to = "VarVel"
+   )%>%
+  select(fishID,TrialTime, VarVel)%>%
+  distinct(fishID,TrialTime, .keep_all=TRUE)
+
+#####Merge the two different datasets together#####
+IndBehav5Unf<-merge(IndBehav4UnfV, IndBehav4Unf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Unf2<-merge(IndBehav5Unf, IndBehavGRUnf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Unf3<-merge(IndBehav5Unf2, IndBehavNGRUnf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+IndBehav5Unf4<-merge(IndBehav5Unf3, IndBehavVarUnf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 
 #Creating the BehavTol and BehavVig columns for the uninfected and calculating the metric for uninfected individual so we can combine these dataframes together
-IndBehav4Unf2 <- IndBehav4Unf2 %>%
+IndBehav5Unf4 <- IndBehav5Unf4 %>%
   group_by(fishID)%>%
   add_column(BehavTol=0, BehavVig=0)
 
 
 #Rbinding our infected and uninfected dataframes together into one overall dataframe
-IndBehav4<-rbind(IndBehav4Unf2,IndBehav4Inf2)
+IndBehav5<-rbind(IndBehav5Unf4,IndBehav5Inf4)
 
 #Remove some unwanted columns to clean up dataset in preparation for analysis
-IndBehav4 <- IndBehav4%>%
-  select(-c(day, TOD,linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))
+IndBehav5 <- IndBehav5%>%
+  select(-c(ERatebf,LRatebf,LtrRatebf, NRatebf_Early,NRatebf_Late,NRatebf_Later))
 
-View(IndBehav4)
+View(IndBehav5)
 
 ```
 
