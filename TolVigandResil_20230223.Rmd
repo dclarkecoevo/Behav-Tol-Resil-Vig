@@ -156,6 +156,28 @@ IndBehav2<- rbind(FemaleOnly, MaleOnly)
 #View(IndBehav2)
 ```
 
+\subsubsection{Checking that fish velocity is not different at different times of day.}
+
+We recorded the velocity of the fish at 3 time periods over the course of the day. Once in the monring between 0900-1100, once in the afternoon 1200-1400, 1500-1700. Therefore we wanted to confirm that there is no consistent Time of day effect before we collapse the behavioral measurements into means for each day. 
+
+```{r checking for TOD effect, warning=FALSE}
+
+#####First visually look at the TOD effect for behavior####
+ggplot(IndBehav2, aes(TOD,Velocity))+geom_boxplot()+geom_jitter()+xlab("Time of Day")+ylab("Velocity (cm/s)")+theme_classic()
+
+####Verify that this isnt statistically significant#####
+anova(lm(Velocity~TOD, IndBehav2))
+
+#####Lets also confirm this doesnt change by sex####
+ggplot(IndBehav2, aes(TOD,Velocity, fill=Sex))+geom_boxplot()+geom_jitter()+xlab("Time of Day")+ylab("Velocity (cm/s)")+theme_classic()
+
+#####Lets also confirm this doesnt change by Infeciton Status####
+ggplot(IndBehav2, aes(TOD,Velocity, fill=Infection))+geom_boxplot()+geom_jitter()+xlab("Time of Day")+ylab("Velocity (cm/s)")+theme_classic()
+
+```
+Visually there does not seem to be a distinguished pattern overall and an anova confirms it. It also does not seem to visually differ by sex or infection status. Therefore we can collapse the three different time points within a day to a mean velocity and variance of velocity across each time point, Before, Early, Late, and Later.
+
+
 \subsubsection{Calculating the behavioral tolerance metrics needed for analyses}
 
 We are calculating behavioral tolerance through two metrics. First is a measure of behavioral tolerance using linear mixed models using slope random effects for fishID. This allows us to extract each individuals change in activity with parasite burden and therefore allow us to calculate the tolerance (fishID slope) for each individual. This also allows us to use the random effect intercept for fishID as a measure of beahvioral vigor. The second way we could caluclate these metrics are a measure of change in behavior between two points of behavior (often referred to as point tolerance, CITATION FOR THIS).  This is calculated in teh second half of the code as the change in behavior between pre-infection and early, late, and later points of infection. 
