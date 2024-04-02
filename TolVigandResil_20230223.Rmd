@@ -165,13 +165,13 @@ We recorded the velocity of the fish at 3 time periods over the course of the da
 #####First visually look at the TOD effect for behavior####
 ggplot(IndBehav2, aes(TOD,Velocity))+geom_boxplot()+geom_jitter()+xlab("Time of Day")+ylab("Velocity (cm/s)")+theme_classic()
 
-####Verify that this isnt statistically significant#####
+####Verify that this is not statistically significant#####
 anova(lm(Velocity~TOD, IndBehav2))
 
-#####Lets also confirm this doesnt change by sex####
+#####Lets also confirm this does not change by sex####
 ggplot(IndBehav2, aes(TOD,Velocity, fill=Sex))+geom_boxplot()+geom_jitter()+xlab("Time of Day")+ylab("Velocity (cm/s)")+theme_classic()
 
-#####Lets also confirm this doesnt change by Infeciton Status####
+#####Lets also confirm this does n0t change by Infection Status####
 ggplot(IndBehav2, aes(TOD,Velocity, fill=Infection))+geom_boxplot()+geom_jitter()+xlab("Time of Day")+ylab("Velocity (cm/s)")+theme_classic()
 
 ```
@@ -180,7 +180,7 @@ Visually there does not seem to be a distinguished pattern overall and an anova 
 
 \subsubsection{Calculating the behavioral tolerance metrics needed for analyses}
 
-We are calculating behavioral tolerance through two metrics. First is a measure of behavioral tolerance using linear mixed models using slope random effects for fishID. This allows us to extract each individuals change in activity with parasite burden and therefore allow us to calculate the tolerance (fishID slope) for each individual. This also allows us to use the random effect intercept for fishID as a measure of beahvioral vigor. The second way we could caluclate these metrics are a measure of change in behavior between two points of behavior (often referred to as point tolerance, CITATION FOR THIS).  This is calculated in teh second half of the code as the change in behavior between pre-infection and early, late, and later points of infection. 
+We are calculating behavioral tolerance through two metrics. First is a measure of behavioral tolerance using linear mixed models using slope random effects for fishID. This allows us to extract each individuals change in activity with parasite burden and therefore allow us to calculate the tolerance (fishID slope) for each individual. This also allows us to use the random effect intercept for fishID as a measure of behavioral vigor. The second way we could calculate these metrics are a measure of change in behavior between two points of behavior (often referred to as point tolerance, CITATION FOR THIS).  This is calculated in the second half of the code as the change in behavior between pre-infection and early, late, and later points of infection. 
 
 ```{r calculating the tolerance metrics, warning=FALSE}
 
@@ -257,9 +257,9 @@ IndBehav4Inf <- IndBehav4 %>%
   mutate(EChBe = AvgVel_Early - AvgVel_Before,
          LChBe = AvgVel_Late - AvgVel_Before,
          LtrChBe = AvgVel_Later - AvgVel_Before,
-         ERatebf = Wormbf_Early - Wormbf_Before/6,
-         LRatebf = Wormbf_Late - Wormbf_Early/6,
-         LtrRatebf = Wormbf_Later - Wormbf_Late/6
+         ERatebf = (Wormbf_Early - Wormbf_Before)/6,
+         LRatebf = (Wormbf_Late - Wormbf_Early)/6,
+         LtrRatebf = (Wormbf_Later - Wormbf_Late)/6
          )%>%
   pivot_longer(cols=starts_with("Wormbf"),
                names_to = "TrialTime",
@@ -328,9 +328,9 @@ IndBehav4Unf <- IndBehav4 %>%
   mutate(EChBe = AvgVel_Early - AvgVel_Before,
          LChBe = AvgVel_Late - AvgVel_Before,
          LtrChBe = AvgVel_Later - AvgVel_Before,
-         NRatebf_Early = Wormbf_Early - Wormbf_Before/5,
-         NRatebf_Late = Wormbf_Late - Wormbf_Early/5,
-         NRatebf_Later = Wormbf_Later - Wormbf_Late/5,
+         NRatebf_Early = (Wormbf_Early - Wormbf_Before)/5,
+         NRatebf_Late = (Wormbf_Late - Wormbf_Early)/5,
+         NRatebf_Later = (Wormbf_Later - Wormbf_Late)/5,
          )%>%
   group_by(fishID)%>%
   pivot_longer(cols = starts_with(c("Wormbf")),
@@ -385,7 +385,7 @@ IndBehavVarUnf <- IndBehav4Unf %>%
   select(fishID,TrialTime, VarVel)%>%
   distinct(fishID,TrialTime, .keep_all=TRUE)
 
-#####Merge the two different datasets together#####
+#####Merge the different datasets together#####
 IndBehav5Unf<-merge(IndBehav4UnfV, IndBehav4Unf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 IndBehav5Unf2<-merge(IndBehav5Unf, IndBehavGRUnf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
 IndBehav5Unf3<-merge(IndBehav5Unf2, IndBehavNGRUnf, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
@@ -400,11 +400,32 @@ IndBehav5Unf4 <- IndBehav5Unf4 %>%
 #Rbinding our infected and uninfected dataframes together into one overall dataframe
 IndBehav5<-rbind(IndBehav5Unf4,IndBehav5Inf4)
 
-#Remove some unwanted columns to clean up dataset in preparation for analysis
-IndBehav5 <- IndBehav5%>%
-  select(-c(ERatebf,LRatebf,LtrRatebf, NRatebf_Early,NRatebf_Late,NRatebf_Later))
+##Pivot longer for Change in behavior 
+IndBehav5ChBe <- IndBehav5%>%
+  select(-TrialTime)%>%
+  rename(ChBehav_Early=EChBe, ChBehav_Late = LChBe, ChBehav_Later = LtrChBe)%>%
+  add_column(ChBehav_Before = 0)%>%
+  pivot_longer(cols = starts_with("ChBehav"),
+      names_to = "TrialTime",
+     names_prefix = "ChBehav_",
+     values_to = "ChBehav"
+    )%>%
+  select(fishID, TrialTime, ChBehav)%>%
+  distinct(fishID,TrialTime, .keep_all=TRUE)
 
-View(IndBehav5)
+#Merge dataframes together for one large dataframe
+IndBehav6<-merge(IndBehav5, IndBehav5ChBe, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+#Removing some of the columns we dont want in the dataframe
+IndBehav6<- IndBehav6%>% 
+  select(-c(ERatebf,LRatebf,LtrRatebf, NRatebf_Early,NRatebf_Late,NRatebf_Later, VarVel_Before,VarVel_Early, VarVel_Late, VarVel_Later))
+
+
+
+#Create a point tolerance metric for each timepoint
+IndBehav6 <- IndBehav6%>%
+  mutate(PTol = ChBehav/Wormbf)
+
+
 
 ```
 
@@ -414,7 +435,7 @@ Now we have to decided how best to calculate whether an individual has recovered
 
 \textbf{fishID}: The individual ID of each fish used in the trial. \newline
 \textbf{TrialTime}: The point of infection where each behavior trial happened. Early - early infection (6 days), Late - late in infection (12 days), Later - later in infection (18 days)\newline
-\textbf{Velocity}: The average velocity of each fish during their behavior trial ($cm/s$) \newline
+\textbf{AvgVel}: The average velocity from three separate behavioral trials of each fish for each of the Trial Times. ($cm/s$) \newline
 \textbf{Sex}: The sex of the individual. F - female, M - male \newline
 \textbf{PreWeight}: The weight of the individual prior to their fist behavior trial and pre-infection. ($grams$)  \newline
 \textbf{PreLength}: The length of the individual prior to their first behavior trial and pre-infection ($mm$) \newline
@@ -427,10 +448,11 @@ Now we have to decided how best to calculate whether an individual has recovered
 \textbf{Died}: Whether or not the individual Died from infection during the experimental trial. 1 - Died, 0 - did not died \newline
 \textbf{PreSMI}: The body condition of the individual prior to their first behavioral trial and pre infection. ($mm/g$) \newline
 \textbf{LateSMI}: The body condition of the individual after to their last behavioral trial and after infection. ($mm/g$) \newline
-\textbf{EChBe}: The change in velocity between the early infection behavioral trial and the before trial. ($cm/s$) \newline
-\textbf{LChBe}: The change in velocity between the Late infection behavioral trial and the before trial. ($cm/s$) \newline
-\textbf{LtrChBe}: The change in velocity between the Later infection behavioral trial and the before trial. ($cm/s$) \newline
 \textbf{Wormbf}:The number of worms on the fish prior to each trial. \newline
-\textbf{Ratebf}:The rate of growth of worms on the fish prior to each trial. \newline
+\textbf{Ratebf}:The rate of growth of worms on the fish prior to each trial from the worm count immediately prior to the trial. \newline
+\textbf{NRatebf}:The rate of growth of worms on the fish prior to each trial calculated as the change in worms between each time point. (For Example, From before to early). \newline
+\textbf{VarVel}:The variance in velocity from the separate behavioral trials during each time point. ($(cm/s)^2$) \newline
 \textbf{BehavTol}:The behavioral tolerance of each individual calculated as the slope of a random effect model where fishID is the random effect term.  \newline
 \textbf{BehavVig}:The behavioral Vigor of each individual calculated as the intercept of a random effect model where fishID is the random effect term \newline
+\textbf{ChBehav}:The change in behavior between trial times. ($cm/s$) \newline
+\textbf{PTol}:Point tolerance metric calculated by dividing the change in behavior between time points by the worms on the fish before the trial ($cm/s/worms$) \newline
