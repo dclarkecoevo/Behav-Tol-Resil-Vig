@@ -423,10 +423,22 @@ IndBehav6<- IndBehav6%>%
 
 #Create a point tolerance metric for each timepoint
 IndBehav6 <- IndBehav6%>%
-  mutate(PTol = ChBehav/Wormbf)
+  mutate(PTol = ChBehav/Wormbf)%>%
+  select(-c(EChBe,LChBe,LtrChBe))
 
+#Remove dataframes used for data wrangling and managing
+# rm(c(IndBehav, IndBehav1,IndBehav2,IndBehav3,IndBehav3Inf1,IndBehav4,IndBehav4Inf,IndBehav4Inf1,IndBehav4InfV,IndBehav4Unf,IndBehav4UnfV,IndBehav5,IndBehav52,IndBehav5ChBe,IndBehav5Inf,IndBehav5Inf2,IndBehav5Inf3,IndBehav5Inf4,IndBehavVarUnf,IndBehavVarInf,IndBehavNGRUnf,IndBehavNGRInf,IndBehavGRUnf,IndBehav5Unf4,IndBehav5Unf3,IndBehav5Unf2,IndBehav5Unf))
 
+#Getting a summary of the entire dataframe
+summary(IndBehav6)
 
+#Setting some characters as factors
+IndBehav6$TrialTime<-as.factor(IndBehav6$TrialTime)
+IndBehav6$Sex<-as.factor(IndBehav6$Sex)
+IndBehav6$Infection<-as.factor(IndBehav6$Infection)
+IndBehav6$Recov<-as.factor(IndBehav6$Recov)
+IndBehav6$Died<-as.factor(IndBehav6$Died)
+IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
 ```
 
 Now we have to decided how best to calculate whether an individual has recovered. In the experiment only had 13 fish recover from infection totally, therefore we are thinking of another metric that indicates a fish is in recovery during infection. 
@@ -456,3 +468,12 @@ Now we have to decided how best to calculate whether an individual has recovered
 \textbf{BehavVig}:The behavioral Vigor of each individual calculated as the intercept of a random effect model where fishID is the random effect term \newline
 \textbf{ChBehav}:The change in behavior between trial times. ($cm/s$) \newline
 \textbf{PTol}:Point tolerance metric calculated by dividing the change in behavior between time points by the worms on the fish before the trial ($cm/s/worms$) \newline
+
+
+```{r primary visualization for our variables for analysis, warning=FALSE}
+
+pairs(~AvgVel+TrialTime+Sex+PreWeight+PreLength+Treatment+Infection+LateWeight+AUC+Recov+Died+PreSMI+LateSMI+Wormbf+Ratebf+NRatebf+VarVel+BehavTol+BehavVig+ChBehav+PTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav6)
+
+```
+
