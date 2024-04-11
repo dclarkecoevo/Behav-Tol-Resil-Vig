@@ -41,19 +41,35 @@ VIEGrowthRate3<-VIEGrowthRate2%>%
   #Taking the growth of worms between the different counts for each fish
   #Naming convention will be a bit weird but making pivoting longer easier
   mutate(
-    one_0to2= ((VIEGrowthRate2$`2` - VIEGrowthRate2$`0`)/2),
-    two_2to4= ((VIEGrowthRate2$`4` - VIEGrowthRate2$`2`)/2),
-    three_4to6= ((VIEGrowthRate2$`6` - VIEGrowthRate2$`4`)/2),
-    four_6to8= ((VIEGrowthRate2$`8` - VIEGrowthRate2$`6`)/2),
-    four_6to9= ((VIEGrowthRate2$`9` - VIEGrowthRate2$`6`)/3),
-    five_8to11= ((VIEGrowthRate2$`11` - VIEGrowthRate2$`8`)/3),
-    six_11to13= ((VIEGrowthRate2$`13` - VIEGrowthRate2$`11`)/2),
-    seven_13to15= ((VIEGrowthRate2$`15` - VIEGrowthRate2$`13`)/2),
-    eight_15to17= ((VIEGrowthRate2$`17` - VIEGrowthRate2$`15`)/2),
-    eight_15to18= ((VIEGrowthRate2$`18` - VIEGrowthRate2$`15`)/2),
-    nine_17to20= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`17`)/3),
-    nine_18to20= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`18`)/3),
+    Growth_0to2= ((VIEGrowthRate2$`2` - VIEGrowthRate2$`0`)/2),
+    Growth_2to4= ((VIEGrowthRate2$`4` - VIEGrowthRate2$`2`)/2),
+    Growth_4to6= ((VIEGrowthRate2$`6` - VIEGrowthRate2$`4`)/2),
+    Growth_6to8= ((VIEGrowthRate2$`8` - VIEGrowthRate2$`6`)/2),
+    Growth_6to9= ((VIEGrowthRate2$`9` - VIEGrowthRate2$`6`)/3),
+    Growth_8to11= ((VIEGrowthRate2$`11` - VIEGrowthRate2$`8`)/3),
+    Growth_11to13= ((VIEGrowthRate2$`13` - VIEGrowthRate2$`11`)/2),
+    Growth_13to15= ((VIEGrowthRate2$`15` - VIEGrowthRate2$`13`)/2),
+    Growth_15to17= ((VIEGrowthRate2$`17` - VIEGrowthRate2$`15`)/2),
+    Growth_15to18= ((VIEGrowthRate2$`18` - VIEGrowthRate2$`15`)/2),
+    Growth_17to20= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`17`)/3),
+    Growth_18to20= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`18`)/3),
   )
 
 
-View(VIEGrowthRate)
+#View(VIEGrowthRate3)
+
+#Drop old columns and then pivot longer so all growthrates and times are in the same columns in a longer format
+VIEGrowthRate3 <- VIEGrowthRate3 %>%
+  #Getting rid of old columsn
+  select(-c(`0`,`2`,`4`,`6`,`8`,`9`,`11`,`13`,`15`,`17`,`18`,`20`,`22`))%>%
+  #Pivoting everything into longer format
+  pivot_longer(
+    cols = starts_with("Growth"),
+    names_to = "Time",
+    names_prefix = "Growth_",
+    values_to = "GrowthRate"
+  )
+
+
+#Take a look at the rates to determine recovery of fish
+View(VIEGrowthRate3)
