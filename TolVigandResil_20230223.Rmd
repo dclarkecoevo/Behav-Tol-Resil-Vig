@@ -70,9 +70,9 @@ IndBehav<- read_csv("VIEBehavior_20210913_V2.csv",
 #Filtering Data set so we can perform our analysis
 IndBehav1<-IndBehav %>%
   #Removing columns we dont need
-  select(-c(Blind.ID, fishID...19, TrialTime...31, AUC2...37, InfLength, Recov...40,Ratebf...48, LateLength, dayofinf, Countintial, Notes, InfWeight))%>%
-  #Renaming some of the columns with funky names for ease of coding and naming
-  rename(fishID = fishID...2, AUC=AUC2...21, TrialTime=TrialTime...23, Ratebf=Ratebf...24, Recov=Recov...25)
+  select(-c(Blind.ID, InfLength, LateLength, dayofinf, Countintial, Notes, InfWeight, TrialTime...29, AUC2...35))%>%
+  #Rename the other Trial Time column so it aligns with all code and is easier to call for analyses
+  rename(TrialTime = TrialTime...22, AUC = AUC2...20)
 
 ```
 \subsection{Calculate metrics needed for further analyses}
@@ -80,11 +80,6 @@ IndBehav1<-IndBehav %>%
 \subsubsection{Calculating all body condition metrics}
 
 ```{r calculating the body metrics, warning=FALSE}
-
-
-IndBehav1<-IndBehav %>%
-  select(-c(Blind.ID, fishID...19, TrialTime...31, AUC2...37, InfLength, Recov...40,Ratebf...48, LateLength, dayofinf, Countintial, Notes, InfWeight))%>%
-  rename(fishID = fishID...2, AUC=AUC2...21, TrialTime=TrialTime...23, Ratebf=Ratebf...24, Recov=Recov...25)
 
 #####This code is just to examine how many fish cleared their infection (13)####
 # IndBehavRec<- IndBehav1 %>%
