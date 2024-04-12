@@ -70,9 +70,7 @@ IndBehav<- read_csv("VIEBehavior_20210913_V2.csv",
 #Filtering Data set so we can perform our analysis
 IndBehav1<-IndBehav %>%
   #Removing columns we dont need
-  select(-c(Blind.ID, InfLength, LateLength, dayofinf, Countintial, Notes, InfWeight, TrialTime...29, AUC2...35))%>%
-  #Rename the other Trial Time column so it aligns with all code and is easier to call for analyses
-  rename(TrialTime = TrialTime...22, AUC = AUC2...20)
+  select(-c(Blind.ID, InfLength, LateLength, dayofinf, Countintial, Notes, InfWeight))
 
 ```
 \subsection{Calculate metrics needed for further analyses}
@@ -424,9 +422,6 @@ IndBehav6 <- IndBehav6%>%
 #Remove dataframes used for data wrangling and managing
 # rm(c(IndBehav, IndBehav1,IndBehav2,IndBehav3,IndBehav3Inf1,IndBehav4,IndBehav4Inf,IndBehav4Inf1,IndBehav4InfV,IndBehav4Unf,IndBehav4UnfV,IndBehav5,IndBehav52,IndBehav5ChBe,IndBehav5Inf,IndBehav5Inf2,IndBehav5Inf3,IndBehav5Inf4,IndBehavVarUnf,IndBehavVarInf,IndBehavNGRUnf,IndBehavNGRInf,IndBehavGRUnf,IndBehav5Unf4,IndBehav5Unf3,IndBehav5Unf2,IndBehav5Unf))
 
-#Getting a summary of the entire dataframe
-summary(IndBehav6)
-
 #Setting some characters as factors
 IndBehav6$TrialTime<-as.factor(IndBehav6$TrialTime)
 IndBehav6$Sex<-as.factor(IndBehav6$Sex)
@@ -434,6 +429,10 @@ IndBehav6$Infection<-as.factor(IndBehav6$Infection)
 IndBehav6$Recov<-as.factor(IndBehav6$Recov)
 IndBehav6$Died<-as.factor(IndBehav6$Died)
 IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
+IndBehav6$RecovPeriod<-as.factor(IndBehav6$RecovPeriod)
+
+#Getting a summary of the entire dataframe
+summary(IndBehav6)
 ```
 
 Now we have to decided how best to calculate whether an individual has recovered. In the experiment only had 13 fish recover from infection totally, therefore we are thinking of another metric that indicates a fish is in recovery during infection. 
@@ -450,7 +449,8 @@ Now we have to decided how best to calculate whether an individual has recovered
 \textbf{Infection}: Whether or not the individual was infected with Gyrodactylus turnbulli. 1 - infected, 0 - uninfected \newline
 \textbf{LateWeight}: The weight of the individual after their final behavior trial and after infection. ($grams$) \newline
 \textbf{wormJump}: The number of worms that jumped from the donor fish to the trial fish during manual infections. \newline
-\textbf{AUC}: The area under the curve of infection over the total infection trajectory for each individual. \newline
+\textbf{AUC2}: The area under the curve of infection over the total infection trajectory for each individual. \newline
+\textbf{RecovPeriod}: The time frame in which an individual started recovering from infection. This is calculated by looking at the growth rate of the worms between each count and see when the worm growth rate was decreasing overall. \newline
 \textbf{Recov}: Whether or not the individual recovered from infection during the experimental trial. 1 - recovered, 0 - did not recover \newline
 \textbf{Died}: Whether or not the individual Died from infection during the experimental trial. 1 - Died, 0 - did not died \newline
 \textbf{PreSMI}: The body condition of the individual prior to their first behavioral trial and pre infection. ($mm/g$) \newline
@@ -467,7 +467,7 @@ Now we have to decided how best to calculate whether an individual has recovered
 
 ```{r primary visualization for our variables for analysis, warning=FALSE}
 
-pairs(~AvgVel+TrialTime+Sex+PreWeight+PreLength+Treatment+Infection+LateWeight+AUC+Recov+Died+PreSMI+LateSMI+Wormbf+Ratebf+NRatebf+VarVel+BehavTol+BehavVig+ChBehav+PTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
+pairs(~AvgVel+TrialTime+Sex+Treatment+Infection+LateWeight+AUC2+Recov+Died+PreSMI+LateSMI+Wormbf+Ratebf+NRatebf+VarVel+BehavTol+BehavVig+ChBehav+PTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
 upper.panel=panel.cor, data=IndBehav6)
 
 ```
