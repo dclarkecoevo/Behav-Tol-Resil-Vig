@@ -41,18 +41,18 @@ VIEGrowthRate3<-VIEGrowthRate2%>%
   #Taking the growth of worms between the different counts for each fish
   #Naming convention will be a bit weird but making pivoting longer easier
   mutate(
-    Growth_0to2= ((VIEGrowthRate2$`2` - VIEGrowthRate2$`0`)/2),
-    Growth_2to4= ((VIEGrowthRate2$`4` - VIEGrowthRate2$`2`)/2),
-    Growth_4to6= ((VIEGrowthRate2$`6` - VIEGrowthRate2$`4`)/2),
-    Growth_6to8= ((VIEGrowthRate2$`8` - VIEGrowthRate2$`6`)/2),
-    Growth_6to9= ((VIEGrowthRate2$`9` - VIEGrowthRate2$`6`)/3),
-    Growth_8to11= ((VIEGrowthRate2$`11` - VIEGrowthRate2$`8`)/3),
-    Growth_11to13= ((VIEGrowthRate2$`13` - VIEGrowthRate2$`11`)/2),
-    Growth_13to15= ((VIEGrowthRate2$`15` - VIEGrowthRate2$`13`)/2),
-    Growth_15to17= ((VIEGrowthRate2$`17` - VIEGrowthRate2$`15`)/2),
-    Growth_15to18= ((VIEGrowthRate2$`18` - VIEGrowthRate2$`15`)/2),
-    Growth_17to20= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`17`)/3),
-    Growth_18to20= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`18`)/3),
+    Growth_1= ((VIEGrowthRate2$`2` - VIEGrowthRate2$`0`)/2),
+    Growth_2= ((VIEGrowthRate2$`4` - VIEGrowthRate2$`2`)/2),
+    Growth_3= ((VIEGrowthRate2$`6` - VIEGrowthRate2$`4`)/2),
+    Growth_4= ((VIEGrowthRate2$`8` - VIEGrowthRate2$`6`)/2),
+    Growth_4= ((VIEGrowthRate2$`9` - VIEGrowthRate2$`6`)/3),
+    Growth_5= ((VIEGrowthRate2$`11` - VIEGrowthRate2$`8`)/3),
+    Growth_6= ((VIEGrowthRate2$`13` - VIEGrowthRate2$`11`)/2),
+    Growth_7= ((VIEGrowthRate2$`15` - VIEGrowthRate2$`13`)/2),
+    Growth_8= ((VIEGrowthRate2$`17` - VIEGrowthRate2$`15`)/2),
+    Growth_8= ((VIEGrowthRate2$`18` - VIEGrowthRate2$`15`)/2),
+    Growth_9= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`17`)/3),
+    Growth_9= ((VIEGrowthRate2$`20` - VIEGrowthRate2$`18`)/3),
   )
 
 
@@ -68,8 +68,17 @@ VIEGrowthRate3 <- VIEGrowthRate3 %>%
     names_to = "Time",
     names_prefix = "Growth_",
     values_to = "GrowthRate"
-  )
+  )%>%
+  drop_na()
 
 
 #Take a look at the rates to determine recovery of fish
 View(VIEGrowthRate3)
+
+#Just for viewing the total worm numbers for different times
+VIEGrowthRateB<- VIEGrowthRate %>%
+  filter(Behav==1)%>%
+  filter(Infection == "I")%>%
+  select(fishID, day, totworm, CountDay)
+
+
