@@ -203,7 +203,7 @@ InBehavBefore<- IndBehav2%>%
   select(-c(InfDiff, Fish, Behavdate, Duration, Distance, comp3, Totworm, rate05, rate012,rate512,rate1216,rate18end,TOD,day, linf,maxlinf, maxworm,peakday,Ddate,Rdate, CountDay))%>%
   mutate(AvgVel = mean(Velocity), VarVel = var(Velocity))%>%
   distinct(fishID, .keep_all=TRUE)
-  
+
 #####creating a dataframe to calculate the mean and variance of velocity for early measurements.##### 
 
 InBehavEarly<- IndBehav2%>%
@@ -245,7 +245,6 @@ IndBehav4 <- IndBehav3 %>%
 
 #####subset down to infected individuals only and calculate point tolerance metrics for each timeframe. #####
 IndBehav4Inf <- IndBehav4 %>%
-  group_by(fishID)%>%
   filter(Infection == 1) %>%
   mutate(EChBe = AvgVel_Early - AvgVel_Before,
          LChBe = AvgVel_Late - AvgVel_Before,
@@ -259,7 +258,7 @@ IndBehav4Inf <- IndBehav4 %>%
                names_prefix = "Wormbf_",
                values_to = "Wormbf")%>%
   select(-c(AvgVel_Before, AvgVel_Early, AvgVel_Late, AvgVel_Later, Ratebf_Before,Ratebf_Early,Ratebf_Late,Ratebf_Later))%>%
-  filter(fishID != 44)
+  filter(fishID != c(44,118,139,94))
 #####Make two dataframes with pivot longer for wormbf and velocity then merge them together on fishID and TrialTime####
 IndBehav4InfV<-IndBehav4 %>%
    filter(Infection == 1) %>%
@@ -269,7 +268,7 @@ IndBehav4InfV<-IndBehav4 %>%
     values_to = "AvgVel"
   )%>%
   select(fishID, AvgVel, TrialTime)%>%
-  filter(fishID != 44 )
+  filter(fishID != c(44,118,139,94))
 
 #####Making the growth rate columns into one column for infected individuals####
 IndBehavGRInf <- IndBehav4 %>%
@@ -307,7 +306,7 @@ IndBehavVarInf <- IndBehav4Inf %>%
 
 
 #####Merging the tolerance and vigor metrics ####
-IndBehav4Inf1<-merge(IndBehav4Inf, betaTol, by.x="fishID", by.y = "fishID")
+IndBehav4Inf1<-merge(IndBehav4Inf, betaTol, by.x="fishID", by.y = "fishID", .keep=all)
 
 #####Merge the two dataframes together based on the fishID and TrialTime to get all variables we want into one dataframe#####
 IndBehav5Inf<-merge(IndBehav4InfV, IndBehav4Inf1, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
@@ -325,7 +324,6 @@ IndBehav4Unf <- IndBehav4 %>%
          NRatebf_Late = (Wormbf_Late - Wormbf_Early)/5,
          NRatebf_Later = (Wormbf_Later - Wormbf_Late)/5,
          )%>%
-  group_by(fishID)%>%
   pivot_longer(cols = starts_with(c("Wormbf")),
       names_to = "TrialTime",
      names_prefix = c("Wormbf_"),
@@ -408,17 +406,20 @@ IndBehav5ChBe <- IndBehav5%>%
 
 #Merge dataframes together for one large dataframe
 IndBehav6<-merge(IndBehav5, IndBehav5ChBe, by.x=c("fishID", "TrialTime"), by.y=c("fishID", "TrialTime"), all=TRUE)
+
 #Removing some of the columns we dont want in the dataframe
-IndBehav6<- IndBehav6%>% 
-  select(-c(ERatebf,LRatebf,LtrRatebf, NRatebf_Early,NRatebf_Late,NRatebf_Later, VarVel_Before,VarVel_Early, VarVel_Late, VarVel_Later))
-
-
-
 #Create a point tolerance metric for each timepoint
 IndBehav6 <- IndBehav6%>%
+  select(-c(ERatebf,LRatebf,LtrRatebf, NRatebf_Early,NRatebf_Late,NRatebf_Later, VarVel_Before,VarVel_Early, VarVel_Late, VarVel_Later))%>%
   mutate(PTol = ChBehav/Wormbf)%>%
-  select(-c(EChBe,LChBe,LtrChBe))
+  mutate(PTol=replace(PTol, PTol == NaN, 0))%>%
+  mutate(PTol=replace(PTol, PTol == -Inf, 0))%>%
+  mutate(PTol=replace(PTol, PTol == Inf, 0))%>%
+  select(-c(EChBe,LChBe,LtrChBe))%>%
+  distinct(fishID,TrialTime, .keep_all=TRUE)%>%
+  drop_na(Sex)
 
+View(IndBehav6)
 #Remove dataframes used for data wrangling and managing
 # rm(c(IndBehav, IndBehav1,IndBehav2,IndBehav3,IndBehav3Inf1,IndBehav4,IndBehav4Inf,IndBehav4Inf1,IndBehav4InfV,IndBehav4Unf,IndBehav4UnfV,IndBehav5,IndBehav52,IndBehav5ChBe,IndBehav5Inf,IndBehav5Inf2,IndBehav5Inf3,IndBehav5Inf4,IndBehavVarUnf,IndBehavVarInf,IndBehavNGRUnf,IndBehavNGRInf,IndBehavGRUnf,IndBehav5Unf4,IndBehav5Unf3,IndBehav5Unf2,IndBehav5Unf))
 
@@ -429,10 +430,12 @@ IndBehav6$Infection<-as.factor(IndBehav6$Infection)
 IndBehav6$Recov<-as.factor(IndBehav6$Recov)
 IndBehav6$Died<-as.factor(IndBehav6$Died)
 IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
-IndBehav6$RecovPeriod<-as.factor(IndBehav6$RecovPeriod)
 
-#Getting a summary of the entire dataframe
-summary(IndBehav6)
+
+# #Exporting dataframe for saving
+#write.csv(IndBehav6, "IndividualBehaviors_20240416.csv")
+
+
 ```
 
 Now we have to decided how best to calculate whether an individual has recovered. In the experiment only had 13 fish recover from infection totally, therefore we are thinking of another metric that indicates a fish is in recovery during infection. 
@@ -465,10 +468,61 @@ Now we have to decided how best to calculate whether an individual has recovered
 \textbf{PTol}:Point tolerance metric calculated by dividing the change in behavior between time points by the worms on the fish before the trial ($cm/s/worms$) \newline
 
 
-```{r primary visualization for our variables for analysis, warning=FALSE}
 
-pairs(~AvgVel+TrialTime+Sex+Treatment+Infection+LateWeight+AUC2+Recov+Died+PreSMI+LateSMI+Wormbf+Ratebf+NRatebf+VarVel+BehavTol+BehavVig+ChBehav+PTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
+\subsection{Visualizing the relationships between variables in our dataset}
+```{r primary visualization for our variables for analysis, warning=FALSE}
+View(IndBehav6)
+pairs(~AvgVel+TrialTime+Sex+Treatment+Infection+LateWeight+AUC2+Died+PreSMI+LateSMI+Wormbf+Ratebf+NRatebf+VarVel+BehavTol+BehavVig+ChBehav, lower.panel=panel.smooth, diag.panel=panel.hist, 
 upper.panel=panel.cor, data=IndBehav6)
+
+
+```
+
+\subsection{Visualize some patterns in the raw data}
+
+```{r recovery to behavior, warning = FALSE}
+
+#What does the average behavior look like for individuals who are recovering from infection
+#Note NA here is uninfected individuals since they could not recover from infection
+ggplot(IndBehav6, aes(TrialTime, AvgVel, group = fishID))+
+  geom_smooth(se=FALSE)+
+  facet_wrap(~Recov)+
+  theme_classic()
+
+
+
+#What does worm burden look like for individuals who are recovering from infection and those that have not
+ggplot(IndBehav6, aes(TrialTime, Wormbf, group = fishID))+
+  geom_smooth(aes(color=fishID), se=FALSE)+
+  facet_wrap(~Recov)+
+  theme_classic()
+
+
+#What does variance in behavior look like for individuals who are recovering from infection
+#Note NA here is uninfected individuals since they could not recover from infection
+ggplot(IndBehav6, aes(TrialTime, VarVel, group = fishID))+
+  geom_smooth(se=FALSE)+
+  facet_wrap(~Recov)+
+  theme_classic()
+
+
+#Is there sexual variation in the behavioral tolerance of individuals?
+#Note this is the behavioral tolerance calculated as the individaul slope from activity and parasite burden for each individual 
+ggplot(IndBehav6, aes(Sex, BehavTol))+
+  geom_boxplot()+
+  geom_jitter()+
+  theme_classic()
+
+#How does this look relative to the point tolerance metrics we calculated?
+
+ggplot(IndBehav6, aes(Sex, PTol))+
+  geom_boxplot(aes(Color=TrialTime))+
+  geom_jitter()+
+  theme_classic()
+
+
+df<-IndBehav6%>%
+  filter(Recov == "1")
 
 ```
 
