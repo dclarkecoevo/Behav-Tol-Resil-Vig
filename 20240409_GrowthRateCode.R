@@ -79,6 +79,12 @@ View(VIEGrowthRate3)
 VIEGrowthRateB<- VIEGrowthRate %>%
   filter(Behav==1)%>%
   filter(Infection == "I")%>%
-  select(fishID, day, totworm, CountDay)
+  select(fishID, day, totworm, CountDay, Recov)
+
+#Setting fishID as a factor
+VIEGrowthRateB$fishID<-as.factor(VIEGrowthRateB$fishID)
+
+#Visualizing worm burdens over time to make sure individuals we think are controling infection are actually controling infection
+ggplot(VIEGrowthRateB, aes(x=day, y=totworm, group=fishID, color=fishID))+geom_smooth(se=FALSE)+facet_wrap(~Recov)
 
 
