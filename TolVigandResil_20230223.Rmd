@@ -79,6 +79,7 @@ IndBehav1<-IndBehav %>%
 
 ```{r calculating the body metrics, warning=FALSE}
 
+
 #####This code is just to examine how many fish cleared their infection (13)####
 # IndBehavRec<- IndBehav1 %>%
 #   filter(Recov==1)%>%
@@ -146,7 +147,9 @@ MaleOnly <- MaleOnly %>%
 #Bringing the male and female dataframes together to create our overall dataframe
 IndBehav2<- rbind(FemaleOnly, MaleOnly)
 
+
 #View(IndBehav2)
+
 ```
 
 \subsubsection{Checking that fish velocity is not different at different times of day.}
@@ -419,7 +422,6 @@ IndBehav6 <- IndBehav6%>%
   distinct(fishID,TrialTime, .keep_all=TRUE)%>%
   drop_na(Sex)
 
-View(IndBehav6)
 #Remove dataframes used for data wrangling and managing
 # rm(c(IndBehav, IndBehav1,IndBehav2,IndBehav3,IndBehav3Inf1,IndBehav4,IndBehav4Inf,IndBehav4Inf1,IndBehav4InfV,IndBehav4Unf,IndBehav4UnfV,IndBehav5,IndBehav52,IndBehav5ChBe,IndBehav5Inf,IndBehav5Inf2,IndBehav5Inf3,IndBehav5Inf4,IndBehavVarUnf,IndBehavVarInf,IndBehavNGRUnf,IndBehavNGRInf,IndBehavGRUnf,IndBehav5Unf4,IndBehav5Unf3,IndBehav5Unf2,IndBehav5Unf))
 
@@ -427,7 +429,7 @@ View(IndBehav6)
 IndBehav6$TrialTime<-as.factor(IndBehav6$TrialTime)
 IndBehav6$Sex<-as.factor(IndBehav6$Sex)
 IndBehav6$Infection<-as.factor(IndBehav6$Infection)
-IndBehav6$Recov<-as.factor(IndBehav6$Recov)
+IndBehav6$ContInf<-as.factor(IndBehav6$ContInf)
 IndBehav6$Died<-as.factor(IndBehav6$Died)
 IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
 
@@ -454,7 +456,7 @@ Now we have to decided how best to calculate whether an individual has recovered
 \textbf{wormJump}: The number of worms that jumped from the donor fish to the trial fish during manual infections. \newline
 \textbf{AUC2}: The area under the curve of infection over the total infection trajectory for each individual. \newline
 \textbf{RecovPeriod}: The time frame in which an individual started recovering from infection. This is calculated by looking at the growth rate of the worms between each count and see when the worm growth rate was decreasing overall. \newline
-\textbf{Recov}: Whether or not the individual recovered from infection during the experimental trial. 1 - recovered, 0 - did not recover \newline
+\textbf{ContInf}: Whether or not the individual was controling infection. We qualified controling infection by having a negative growth rate post peak infection. 1 - Controlled, 0 - Uncontrolled \newline
 \textbf{Died}: Whether or not the individual Died from infection during the experimental trial. 1 - Died, 0 - did not died \newline
 \textbf{PreSMI}: The body condition of the individual prior to their first behavioral trial and pre infection. ($mm/g$) \newline
 \textbf{LateSMI}: The body condition of the individual after to their last behavioral trial and after infection. ($mm/g$) \newline
@@ -480,21 +482,24 @@ upper.panel=panel.cor, data=IndBehav6)
 
 \subsection{Visualize some patterns in the raw data}
 
-```{r recovery to behavior, warning = FALSE}
+```{r recovery and behavior, warning = FALSE}
+
+df<-IndBehav6%>%
+  filter(ContInf == "0")
 
 #What does the average behavior look like for individuals who are recovering from infection
 #Note NA here is uninfected individuals since they could not recover from infection
 ggplot(IndBehav6, aes(TrialTime, AvgVel, group = fishID))+
   geom_smooth(se=FALSE)+
-  facet_wrap(~Recov)+
+  facet_wrap(~ContInf)+
   theme_classic()
 
 
 
 #What does worm burden look like for individuals who are recovering from infection and those that have not
-ggplot(IndBehav6, aes(TrialTime, Wormbf, group = fishID))+
+ggplot(df, aes(TrialTime, Wormbf, group = fishID))+
   geom_smooth(aes(color=fishID), se=FALSE)+
-  facet_wrap(~Recov)+
+  facet_wrap(~ContInf)+
   theme_classic()
 
 
@@ -502,7 +507,7 @@ ggplot(IndBehav6, aes(TrialTime, Wormbf, group = fishID))+
 #Note NA here is uninfected individuals since they could not recover from infection
 ggplot(IndBehav6, aes(TrialTime, VarVel, group = fishID))+
   geom_smooth(se=FALSE)+
-  facet_wrap(~Recov)+
+  facet_wrap(~ContInf)+
   theme_classic()
 
 
@@ -521,8 +526,6 @@ ggplot(IndBehav6, aes(Sex, PTol))+
   theme_classic()
 
 
-df<-IndBehav6%>%
-  filter(Recov == "1")
 
 ```
 
