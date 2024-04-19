@@ -73,18 +73,25 @@ VIEGrowthRate3 <- VIEGrowthRate3 %>%
 
 
 #Take a look at the rates to determine recovery of fish
-View(VIEGrowthRate3)
+# View(VIEGrowthRate3)
 
 #Just for viewing the total worm numbers for different times
 VIEGrowthRateB<- VIEGrowthRate %>%
   filter(Behav==1)%>%
   filter(Infection == "I")%>%
-  select(fishID, day, totworm, CountDay, Recov)
+  select(fishID, day, totworm, CountDay, ContInf)
 
 #Setting fishID as a factor
 VIEGrowthRateB$fishID<-as.factor(VIEGrowthRateB$fishID)
 
 #Visualizing worm burdens over time to make sure individuals we think are controling infection are actually controling infection
-ggplot(VIEGrowthRateB, aes(x=day, y=totworm, group=fishID, color=fishID))+geom_smooth(se=FALSE)+facet_wrap(~Recov)
+ggplot(VIEGrowthRateB, aes(x=day, y=totworm, group=fishID, color=fishID))+geom_smooth(se=FALSE)+facet_wrap(~ContInf)
 
+#filtering down to just uncontroled infection to make sure all trajectories make sense.
+
+VIEGrowthRateUC <- VIEGrowthRateB%>%
+  filter(ContInf == 0)
+
+#Visualizing worm burdens over time to make sure individuals we think are controling infection are actually controling infection
+ggplot(VIEGrowthRateUC, aes(x=day, y=totworm, group=fishID, color=fishID))+geom_smooth(se=FALSE)+facet_wrap(~ConInf)
 
