@@ -388,7 +388,7 @@ IndBehav5Unf4<-merge(IndBehav5Unf3, IndBehavVarUnf, by.x=c("fishID", "TrialTime"
 #Creating the BehavTol and BehavVig columns for the uninfected and calculating the metric for uninfected individual so we can combine these dataframes together
 IndBehav5Unf4 <- IndBehav5Unf4 %>%
   group_by(fishID)%>%
-  add_column(BehavTol=0, BehavVig=0)
+  add_column(BehavTol=0, BehavVig= 0)
 
 
 #Rbinding our infected and uninfected dataframes together into one overall dataframe
@@ -435,7 +435,7 @@ IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
 
 
 # #Exporting dataframe for saving
-#write.csv(IndBehav6, "IndividualBehaviors_20240416.csv")
+write.csv(IndBehav6, "IndividualBehaviors_20240416.csv")
 
 
 ```
@@ -484,23 +484,50 @@ upper.panel=panel.cor, data=IndBehav6)
 
 ```{r recovery and behavior, warning = FALSE}
 
-df<-IndBehav6%>%
-  filter(ContInf == "0")
+#Load in dataset from above. This bit of code is meant to save time so people dont have to rerun the entire data parsing and calculating step above. Code will be saved for reproducibility.
+IndBehav6 <- read_csv("IndividualBehaviors_20240416.csv")
+
+#Setting some of the factors back to factors
+IndBehav6$fishID<-as.factor(IndBehav6$fishID)
+IndBehav6$TrialTime<-as.factor(IndBehav6$TrialTime)
+IndBehav6$Sex<-as.factor(IndBehav6$Sex)
+IndBehav6$Infection<-as.factor(IndBehav6$Infection)
+IndBehav6$ContInf<-as.factor(IndBehav6$ContInf)
+IndBehav6$Died<-as.factor(IndBehav6$Died)
+IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
+
+
+#Calculating tissue tolerance for each individual. 
+IndBehav6<-IndBehav6%>%
+  mutate(TisTol = LateSMI - PreSMI)
+
+
+#Filtering the data set for individuals who are not controlling for infection.
+IndBehavCont<-IndBehav6%>%
+  filter(ContInf == "0" | ContInf == "1")
+
+#Filtering to only infected individuals for tolerance metrics
+IndBehavI<-IndBehav6%>%
+  filter(Infection == "1")
+
+
 
 #What does the average behavior look like for individuals who are recovering from infection
 #Note NA here is uninfected individuals since they could not recover from infection
 ggplot(IndBehav6, aes(TrialTime, AvgVel, group = fishID))+
   geom_smooth(se=FALSE)+
   facet_wrap(~ContInf)+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 
 
 
 #What does worm burden look like for individuals who are recovering from infection and those that have not
-ggplot(df, aes(TrialTime, Wormbf, group = fishID))+
+ggplot(IndBehavCont, aes(TrialTime, Wormbf, group = fishID))+
   geom_smooth(aes(color=fishID), se=FALSE)+
   facet_wrap(~ContInf)+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 
 
 #What does variance in behavior look like for individuals who are recovering from infection
@@ -508,7 +535,8 @@ ggplot(df, aes(TrialTime, Wormbf, group = fishID))+
 ggplot(IndBehav6, aes(TrialTime, VarVel, group = fishID))+
   geom_smooth(se=FALSE)+
   facet_wrap(~ContInf)+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 
 
 #Is there sexual variation in the behavioral tolerance of individuals?
@@ -516,14 +544,68 @@ ggplot(IndBehav6, aes(TrialTime, VarVel, group = fishID))+
 ggplot(IndBehav6, aes(Sex, BehavTol))+
   geom_boxplot()+
   geom_jitter()+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
 
 #How does this look relative to the point tolerance metrics we calculated?
 
 ggplot(IndBehav6, aes(Sex, PTol))+
-  geom_boxplot(aes(Color=TrialTime))+
+  geom_boxplot(aes(outlier=FALSE))+
   geom_jitter()+
-  theme_classic()
+  theme_classic()+
+  theme(legend.position = "none")
+
+
+
+#Is there sexual variation in the behavioral vigor of individuals?
+ggplot(IndBehav6, aes(Sex, BehavVig))+
+  geom_boxplot()+
+  geom_jitter()+
+  theme_classic()+
+  theme(legend.position = "none")
+
+
+#How does Behavioral Vigor correlate with Behavioral Tolerance
+#This first graph is using the tolerance metric from the individual random slope
+ggplot(IndBehavI, aes(BehavTol, BehavVig))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  theme(legend.position = "none")
+
+
+#This next graph is using the tolerance metric calculated as the point tolerance change between timepoints
+
+ggplot(IndBehavI, aes(PTol, BehavVig))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~TrialTime)+
+  theme(legend.position = "none")
+
+
+
+#How does Behavioral Vigor correlate with Behavioral Tolerance
+#This first graph is using the tolerance metric from the individual random slope
+ggplot(IndBehavI, aes(BehavTol, BehavVig))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+###Now lets see how these relationships look based on sex
+#This next graph is using the tolerance metric calculated as the point tolerance change between timepoints
+
+ggplot(IndBehavI, aes(PTol, BehavVig))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+
+#Now how does the rel
 
 
 
