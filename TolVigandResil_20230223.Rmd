@@ -482,39 +482,44 @@ upper.panel=panel.cor, data=IndBehav6)
 
 \subsection{Visualize some patterns in the raw data}
 
-```{r recovery and behavior, warning = FALSE}
+```{r Loading in completed data set and some quick manipulations before we get into analysis, warning = FALSE}
 
 #Load in dataset from above. This bit of code is meant to save time so people dont have to rerun the entire data parsing and calculating step above. Code will be saved for reproducibility.
-IndBehav6 <- read_csv("IndividualBehaviors_20240416.csv")
+IndBehav7 <- read_csv("IndividualBehaviors_20240424.csv")
 
 #Setting some of the factors back to factors
-IndBehav6$fishID<-as.factor(IndBehav6$fishID)
-IndBehav6$TrialTime<-as.factor(IndBehav6$TrialTime)
-IndBehav6$Sex<-as.factor(IndBehav6$Sex)
-IndBehav6$Infection<-as.factor(IndBehav6$Infection)
-IndBehav6$ContInf<-as.factor(IndBehav6$ContInf)
-IndBehav6$Died<-as.factor(IndBehav6$Died)
-IndBehav6$Treatment<-as.factor(IndBehav6$Treatment)
+IndBehav7$fishID<-as.factor(IndBehav7$fishID)
+IndBehav7$TrialTime<-as.factor(IndBehav7$TrialTime)
+IndBehav7$Sex<-as.factor(IndBehav7$Sex)
+IndBehav7$Infection<-as.factor(IndBehav7$Infection)
+IndBehav7$ContInf<-as.factor(IndBehav7$ContInf)
+IndBehav7$Died<-as.factor(IndBehav7$Died)
+IndBehav7$Treatment<-as.factor(IndBehav7$Treatment)
 
 
 #Calculating tissue tolerance for each individual. 
-IndBehav6<-IndBehav6%>%
-  mutate(TisTol = LateSMI - PreSMI)
+IndBehav7<-IndBehav7%>%
+  mutate(ChSMI = LateSMI - PreSMI)%>%
+  mutate(TisTol = ChSMI/Totworm)
 
 
 #Filtering the data set for individuals who are not controlling for infection.
-IndBehavCont<-IndBehav6%>%
+IndBehavCont<-IndBehav7%>%
   filter(ContInf == "0" | ContInf == "1")
 
 #Filtering to only infected individuals for tolerance metrics
-IndBehavI<-IndBehav6%>%
+IndBehavI<-IndBehav7%>%
   filter(Infection == "1")
 
 
 
+
+```
+
+```{r Visualizing patterns using the raw data, warning=FALSE, include= FALSE}
 #What does the average behavior look like for individuals who are recovering from infection
 #Note NA here is uninfected individuals since they could not recover from infection
-ggplot(IndBehav6, aes(TrialTime, AvgVel, group = fishID))+
+ggplot(IndBehav7, aes(TrialTime, AvgVel, group = fishID))+
   geom_smooth(se=FALSE)+
   facet_wrap(~ContInf)+
   theme_classic()+
@@ -532,7 +537,7 @@ ggplot(IndBehavCont, aes(TrialTime, Wormbf, group = fishID))+
 
 #What does variance in behavior look like for individuals who are recovering from infection
 #Note NA here is uninfected individuals since they could not recover from infection
-ggplot(IndBehav6, aes(TrialTime, VarVel, group = fishID))+
+ggplot(IndBehav7, aes(TrialTime, VarVel, group = fishID))+
   geom_smooth(se=FALSE)+
   facet_wrap(~ContInf)+
   theme_classic()+
@@ -541,7 +546,7 @@ ggplot(IndBehav6, aes(TrialTime, VarVel, group = fishID))+
 
 #Is there sexual variation in the behavioral tolerance of individuals?
 #Note this is the behavioral tolerance calculated as the individaul slope from activity and parasite burden for each individual 
-ggplot(IndBehav6, aes(Sex, BehavTol))+
+ggplot(IndBehav7, aes(Sex, BehavTol))+
   geom_boxplot()+
   geom_jitter()+
   theme_classic()+
@@ -549,7 +554,7 @@ ggplot(IndBehav6, aes(Sex, BehavTol))+
 
 #How does this look relative to the point tolerance metrics we calculated?
 
-ggplot(IndBehav6, aes(Sex, PTol))+
+ggplot(IndBehav7, aes(Sex, PTol))+
   geom_boxplot(aes(outlier=FALSE))+
   geom_jitter()+
   theme_classic()+
@@ -558,7 +563,7 @@ ggplot(IndBehav6, aes(Sex, PTol))+
 
 
 #Is there sexual variation in the behavioral vigor of individuals?
-ggplot(IndBehav6, aes(Sex, BehavVig))+
+ggplot(IndBehav7, aes(Sex, BehavVig))+
   geom_boxplot()+
   geom_jitter()+
   theme_classic()+
@@ -587,7 +592,7 @@ ggplot(IndBehavI, aes(PTol, BehavVig))+
 
 #How does Behavioral Vigor correlate with Behavioral Tolerance
 #This first graph is using the tolerance metric from the individual random slope
-ggplot(IndBehavI, aes(BehavTol, BehavVig))+
+ggplot(IndBehavI, aes(y=BehavTol, x=BehavVig))+
   geom_smooth(method="lm")+
   geom_jitter()+
   theme_classic()+
@@ -605,7 +610,129 @@ ggplot(IndBehavI, aes(PTol, BehavVig))+
   theme(legend.position = "none")
 
 
-#Now how does the rel
+#How does Behavioral Vigor relate to total infeciton
+
+ggplot(IndBehavI, aes(BehavVig, AUC2))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+
+#How does individual condition relate to behavioral tolerance
+ggplot(IndBehavI, aes(BehavTol, PreSMI))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+#How does individual condition relate to behavioral tolerance
+ggplot(IndBehavI, aes(BehavVig, PreSMI))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+#How does Tissue tolerance relate to behavioral tolerance
+
+ggplot(IndBehavI, aes(BehavTol, TisTol))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+
+#How does Tissue tolerance relate to behavioral tolerance
+
+ggplot(IndBehavI, aes(PreSMI, TisTol))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
+
+
+#How does TisTol differ by sex?
+ggplot(IndBehav7, aes(Sex, TisTol))+
+  geom_boxplot()+
+  geom_jitter()+
+  theme_classic()+
+  theme(legend.position = "none")
+
+
+
+```
+
+
+\subsection{What hypotheses we want to test with these data and what data we can use to test them?}
+
+For uninfected and infected individuals only:
+
+Do infected and uninfected individuals differ in their average and variatince in velocity?
+
+Do we see differences in the change in behavior and  between infected
+
+
+For infected individuals only: 
+
+
+Is there sexual variation in host behavioral tolerance and behavioral vigor? 
+
+Do host behavioral tolerance, tissue tolerance, and behavioral vigor correlate together and does this differ by sex? 
+
+Do hosts with lower behavioral tolerance have higher behavior resilience (i.e. how hosts behave once they have started to clear infection/have cleared infection)
+
+Is there sexual variation in individuals behavioral resilience? 
+
+
+```{r more specific visualization of explanatory variables mentioned above, warning = FALSE}
+
+pairs(~AvgVel+Sex+Infection+AUC2+Died+NRatebf+VarVel+BehavTol+BehavVig+TisTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav7)
+
+```
+
+\section{Some exploratory statistics to start building towards more formal analyses}
+
+```{r exploratory statistics, warning=FALSE}
+
+#####Does infection status or sex variation explain any differences in the average velocity of guppies?#####
+#Fit a linear model for checking what explanatory factors are important for Average Velocity
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+AvgVelLM<-lmer(AvgVel~TrialTime+Infection*Sex+(1|fishID), IndBehav7)
+vif(AvgVelLM)
+
+#Summary to see the relationship of the variables. 
+summary(AvgVelLM)
+
+#F test to test for signficance of slope of variables
+Anova(AvgVelLM, test="F")
+
+
+#QUick explanatory visuals
+visreg(AvgVelLM, scale="response", partial=T)
+
+
+
+
+###### Look at the variance in velocity and what explanatory factors are important for it.#####
+#Fit a linear model for checking what explanatory factors are important for Average Velocity
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+VarVelLM<-lmer(VarVel~TrialTime+Infection*Sex+(1|fishID), IndBehav7)
+
+#Summary to see the relationship of the variables. 
+summary(VarVelLM)
+
+#F test to test for signficance of slope of variables
+Anova(VarVelLM, test="F", type=3)
+
+
+#Quick explanatory visuals
+visreg(VarVelLM, scale="response", partial=T)
 
 
 
