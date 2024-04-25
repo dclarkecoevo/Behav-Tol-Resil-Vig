@@ -672,69 +672,340 @@ ggplot(IndBehav7, aes(Sex, TisTol))+
 
 For uninfected and infected individuals only:
 
-Do infected and uninfected individuals differ in their average and variatince in velocity?
+  Do infected and uninfected individuals differ in their average and variation in     velocity?
+ 
+    Is there sexual variation in the average and variation in velocity?
 
-Do we see differences in the change in behavior and  between infected
+  Do we see differences in the change in behavior and between infected
 
 
 For infected individuals only: 
 
 
-Is there sexual variation in host behavioral tolerance and behavioral vigor? 
+  Is there sexual variation in host behavioral tolerance and behavioral vigor? 
 
-Do host behavioral tolerance, tissue tolerance, and behavioral vigor correlate together and does this differ by sex? 
+  Do host behavioral tolerance, tissue tolerance, and behavioral vigor correlate together and does this differ by sex? 
 
-Do hosts with lower behavioral tolerance have higher behavior resilience (i.e. how hosts behave once they have started to clear infection/have cleared infection)
+  Do hosts with lower behavioral tolerance have higher behavior resilience (i.e. how hosts behave once they have started to clear infection/have cleared infection)
 
-Is there sexual variation in individuals behavioral resilience? 
+  Is there sexual variation in individuals behavioral resilience? 
 
 
-```{r more specific visualization of explanatory variables mentioned above, warning = FALSE}
+```{r more specific visualization of explanatory variables mentioned above, warning = FALSE, include=FALSE}
 
 pairs(~AvgVel+Sex+Infection+AUC2+Died+NRatebf+VarVel+BehavTol+BehavVig+TisTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
 upper.panel=panel.cor, data=IndBehav7)
 
 ```
 
-\section{Some exploratory statistics to start building towards more formal analyses}
+\section{Do infected and uninfected individuals differ in their average and variation in velocity?}
 
-```{r exploratory statistics, warning=FALSE}
+\subsection{Visually inspection of the explanatory variables that will be used in the analyses}
 
-#####Does infection status or sex variation explain any differences in the average velocity of guppies?#####
+```{r visual inspection of variables that will be used in the analysis, warning= FALSE}
+
+pairs(~AvgVel+VarVel+Sex+Infection+TrialTime, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav7)
+
+```
+
+\subsection{Does infection or sex variation impact the average velocity of individauls?}
+
+Individuals had 3 behavioral trials per time period of infection (i.e. 3 behavioral trials before infection) and therefore using preliminary analysis we showed that there is no difference due to time of day of these recordings so we averaged and quantified the variance of the velocities for that day to get an average velocity per trial time.  
+
+This analysis uses the average velocity for each individual at each trial point. 
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear mixed model to analyze how average velocity differs by infection status and sexual variation. FishID is included as a random term to allow for non-independence of individuals due to multiple measurements per individual across time.
+
+* Deterministic
+ + $AvgVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $a_{i}$
+
+* Stochastic
+  + AvgVel ~ *N*($AvgVel_{det}$, $\sigma^{2}$) 
+  + $a_{i}$ ~ *N*(0, $\sigma^{2}_{fishID}$) 
+  
+* Fixed
+  + TrialTime
+  + Infection
+  +  Sex 
+* Random
+  + fishID
+  
+  
+  
+```{r fitting the linear mixed model, warning=FALSE}
+
 #Fit a linear model for checking what explanatory factors are important for Average Velocity
 #Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
 AvgVelLM<-lmer(AvgVel~TrialTime+Infection*Sex+(1|fishID), IndBehav7)
-vif(AvgVelLM)
+
+
 
 #Summary to see the relationship of the variables. 
 summary(AvgVelLM)
+```
+
+\subsubsection{Validate that the model fits well and there are no problems}
+
+
+```{r model validation for the avergae velocity model, warning=FALSE}
+
+#Using the check_model function from the perforamnce package to check the model validation
+
+check_model(AvgVelLM)
+
+#Using the Dharma package to check quantile residuals
+#First simulating the quantile residuals
+sim_residuals_AvgVelLM <-simulateResiduals(AvgVelLM, 1000)
+#Plotting the quantile residuals to test how quantile residuals look
+plot(sim_residuals_AvgVelLM) 
+#Testing for dispersion
+testDispersion(sim_residuals_AvgVelLM)
+
+#All model validation looks good. 
+
+```
+
+\subsubsection{Testing the significance of factors in our model using a Kenward-Rodgers F test}
+
+
+```{r using anova to perform a kenward-Rodgers F test, warning=FALSE}
 
 #F test to test for signficance of slope of variables
-Anova(AvgVelLM, test="F")
+Anova(AvgVelLM, test="F", type=3)
+
+```
+
+\subsubsection{Visualize the important explanatory factors for average velocity}
 
 
-#QUick explanatory visuals
-visreg(AvgVelLM, scale="response", partial=T)
+```{r visualizing Trialtime by average velocity, warning=FALSE}
+#TrialTimeGraph
+AvgVelbyTT=visreg(AvgVelLM, scale="response", "TrialTime", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Average Velocity (cm/s)")+
+  xlab(" ")+
+  theme(text=element_text(size=22))+
+  annotate("text",x=0.25, y=5, label = "p = 5.11e-10", size=9, fontface = "italic")
+#Print the graph
+print(AvgVelbyTT)
 
 
+```
+
+```{r visualizing Sex by average velocity, warning=FALSE}
+#TrialTimeGraph
+AvgVelbySex=visreg(AvgVelLM, scale="response", "Sex", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Average Velocity (cm/s)")+
+  xlab(" ")+
+  theme(text=element_text(size=22))+
+  annotate("text",x=0.25, y=5, label = "p = 0.024", size=9, fontface = "italic")
+#Print the graph
+print(AvgVelbySex)
 
 
-###### Look at the variance in velocity and what explanatory factors are important for it.#####
-#Fit a linear model for checking what explanatory factors are important for Average Velocity
+```
+
+\subsection{Does infection or sex variation impact the variance in velocity of individauls?}
+
+This analysis uses the variance of velocity for each individual at each trial point. 
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear mixed model to analyze how variance in velocity differs by infection status and sexual variation. FishID is included as a random term to allow for non-independence of individuals due to multiple measurements per individual across time.
+
+* Deterministic
+ + $VarVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $a_{i}$
+
+* Stochastic
+  + VarVel ~ *N*($VarVel_{det}$, $\sigma^{2}$) 
+  + $a_{i}$ ~ *N*(0, $\sigma^{2}_{fishID}$) 
+  
+* Fixed
+  + TrialTime
+  + Infection
+  +  Sex 
+* Random
+  + fishID
+  
+  
+
+```{r fitting the variance of velocity model, warning=FALSE}
+
+#Fit a linear model for checking what explanatory factors are important for Variance in Velocity
 #Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
 VarVelLM<-lmer(VarVel~TrialTime+Infection*Sex+(1|fishID), IndBehav7)
 
 #Summary to see the relationship of the variables. 
 summary(VarVelLM)
 
+```
+
+\subsubsection{Validate that the model fits well and there are no problems}
+
+
+```{r model validation for the Variance in velocity model, warning=FALSE}
+
+#Using the check_model function from the perforamnce package to check the model validation
+
+check_model(VarVelLM)
+
+#Using the Dharma package to check quantile residuals
+#First simulating the quantile residuals
+sim_residuals_VarVelLM <-simulateResiduals(VarVelLM, 1000)
+#Plotting the quantile residuals to test how quantile residuals look
+plot(sim_residuals_VarVelLM) 
+#Testing for dispersion
+testDispersion(sim_residuals_VarVelLM)
+
+#There are some problems with this model validation. It doesnt look model breaking but definitely should look at other model error structures to resolve the issues. 
+
+```
+
+\subsubsection{Testing the significance of factors in our model using a Kenward-Rodgers F test}
+
+
+```{r using anova to perform a kenward-Rodgers F test for the variance model, warning=FALSE}
+
 #F test to test for signficance of slope of variables
 Anova(VarVelLM, test="F", type=3)
 
+```
 
-#Quick explanatory visuals
-visreg(VarVelLM, scale="response", partial=T)
+\subsubsection{Visualize the important explanatory factors for variance of velocity}
 
+```{r exploratory statistics, warning=FALSE}
+
+
+
+#VariancebySex
+VarVelbySex<-visreg(VarVelLM, scale="response", "Sex", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Variance in Velocity (cm/s)")+
+  xlab(" ")+
+  theme(text=element_text(size=22))+
+  annotate("text",x=0.25, y=5, label = "p = 0.016", size=9, fontface = "italic")
+
+#Print the graph
+print(VarVelbySex)
+
+
+#Variance by sex and split by infection
+Infnames<-c("Uninfected","Infected")
+names(Infnames)<-c("0","1")
+
+VarVelbySexnInf<-visreg(VarVelLM, scale="response", "Sex", "Infection", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Variance in Velocity (cm/s)")+
+  xlab(" ")+
+  theme(text=element_text(size=22))+
+  annotate("text",x=0.25, y=5, label = "p = 0.018", size=9, fontface = "italic")+
+  facet_wrap(~Infection, labeller = labeller(Infection = Infnames))
+
+#Print the graph
+print(VarVelbySexnInf)
 
 
 ```
+
+
+\section{Do we see differences in change in behavior over time based on infection status and sexual variation?}
+
+\subsection{Visually inspection of the explanatory variables that will be used in the analyses}
+
+```{r visual inspection of variables that will be used in the analysis for change in behavior, warning=FALSE}
+
+pairs(~ChBehav+Sex+Infection+TrialTime+PreSMI+AUC2, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav7)
+
+```
+
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear mixed model to analyze how Change in velocity differs by infection status and sexual variation. FishID is included as a random term to allow for non-independence of individuals due to multiple measurements per individual across time.
+
+* Deterministic
+ + $ChVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $a_{i}$
+
+* Stochastic
+  + ChVel ~ *N*($ChVel_{det}$, $\sigma^{2}$) 
+  + $a_{i}$ ~ *N*(0, $\sigma^{2}_{fishID}$) 
+  
+* Fixed
+  + TrialTime
+  + Infection
+  +  Sex 
+* Random
+  + fishID
+  
+```{r fitting the change in behavior model, warning=FALSE}
+
+#Fit a linear model for checking what explanatory factors are important for Variance in Velocity
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+ChVelLM<-lmer(ChBehav~TrialTime+Infection*Sex+(1|fishID), IndBehav7)
+
+#Summary to see the relationship of the variables. 
+summary(VarVelLM)
+
+```
+  
+  \subsubsection{Validate that the model fits well and there are no problems}
+
+
+```{r model validation for the Change in velocity model, warning=FALSE}
+
+#Using the check_model function from the perforamnce package to check the model validation
+
+check_model(ChVelLM)
+
+#Using the Dharma package to check quantile residuals
+#First simulating the quantile residuals
+sim_residuals_ChVelLM <-simulateResiduals(ChVelLM, 1000)
+#Plotting the quantile residuals to test how quantile residuals look
+plot(sim_residuals_ChVelLM) 
+#Testing for dispersion
+testDispersion(sim_residuals_ChVelLM)
+
+#There are some problems with this model validation. It doesnt look model breaking but definitely should look at other model error structures to resolve the issues. 
+
+```
+  
+  \subsubsection{Testing the significance of factors in our model using a Kenward-Rodgers F test}
+
+
+```{r using anova to perform a kenward-Rodgers F test for change in behavior, warning=FALSE}
+
+#F test to test for signficance of slope of variables
+Anova(ChVelLM, test="F", type=3)
+
+```
+
+
+
+\subsubsection{Visualize the important explanatory factors for change in velocity}
+
+
+```{r visualizing Trialtime by Change in velocity, warning=FALSE}
+#TrialTimeGraph
+ChVelbyTT=visreg(ChVelLM, scale="response", "TrialTime", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Change in Velocity (cm/s)")+
+  xlab(" ")+
+  theme(text=element_text(size=22))+
+  annotate("text",x=0.25, y=5, label = "p = 4.12e-10", size=9, fontface = "italic")
+#Print the graph
+print(ChVelbyTT)
+
+
+```
+
 
