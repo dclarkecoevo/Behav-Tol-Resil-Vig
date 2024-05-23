@@ -550,36 +550,24 @@ IndBehavF<-IndBehav7%>%
 #Combine the two separate dataframes together
 IndBehav8<-rbind(IndBehavF, IndBehavM)
 
-
-#Filtering the data set for individuals who are not controlling for infection.
-IndBehavCont<-IndBehav7%>%
-  filter(ContInf == "0" | ContInf == "1")
-
-#Filtering to only infected individuals for tolerance metrics
-IndBehavI<-IndBehav7%>%
-  filter(Infection == "1")
-
 #Scaling some variables to make them biologically comparable and better for model fitting
 
 IndBehav8 <- IndBehav8 %>%
-  mutate(ScAvgVelBef = scale(AvgVelBef),
-         ScVarvelBef = scale(VarvelBef),
-         ScNRatebf = scale(NRatebf),
-         ScBehavTol = scale(BehavTol),
-         ScTotworm = scale(Totworm),
-         ScAUC = scale(AUC2),
-         ScBehavVig = scale(BehavVig),
-         ScChSMI = scale(ChSMI),
-         ScTisTol = scale(TisTol))
+  mutate(
+         ScVarvelBef = c(scale(VarvelBef)),
+         ScNRatebf = c(scale(NRatebf)),
+         ScBehavTol = c(scale(BehavTol)),
+         ScTotworm = c(scale(Totworm)),
+         ScAUC = c(scale(AUC2)),
+         ScBehavVig = c(scale(BehavVig)),
+         ScChSMI = c(scale(ChSMI)),
+         ScTisTol = c(scale(TisTol)))
+
+IndBehav8$ScPSMI<-as.numeric(IndBehav8$ScPSMI)
 
 
 IndBehav8$fishID<-as.character(IndBehav8$fishID)
 
-unique(IndBehav8$fishID)
-
-
-
-summary(IndBehav8)
 ```
 
 
@@ -587,13 +575,13 @@ summary(IndBehav8)
 
 This metric is used as a combination as the tolerance (change in behavior) and resistance (the change in parasites over the course of infeciton).
 
-```{r New Metric of tolerance}
+```{r New Metric of tolerance, warning=FALSE, echo=FALSE}
 #Visually inspecting the ploygons for the change in behavior as parasite load increases
 ggplot(IndBehav7, aes(x=Wormbf, y=AvgVel, color=fishID))+
   geom_point()+
   theme_classic()+
   theme(legend.position="none")+
-  geom_polygon(aes(fill=fishID, alpha=1/10), rule="evenodd")
+  geom_polygon(aes(fill=fishID, alpha=1/10))
 
 #Creating a dataframe that is missing the NAs for average velocity and Wormbf from fish who died/recovered during infection. 
 NonNABehav<-IndBehav8 %>%
@@ -639,10 +627,20 @@ TotalAreas <- TotalAreas%>%
 #Merging the TotalAreas with our data frame
 IndBehav8<-merge(IndBehav8, TotalAreas, by.x=c("fishID"), by.y=c("fishID"), all=TRUE)
 
+#subsetting out before measurements 
 
+IndBehav8 <- IndBehav8 %>%
+  filter(TrialTime != "Before")%>%
+  mutate(ResidPLength = resid(lm(PreLength~Sex)))%>%
+  mutate(ScRPLength = c(scale(ResidPLength)))
 
+#Filtering the data set for individuals who are not controlling for infection.
+IndBehavCont<-IndBehav8%>%
+  filter(ContInf == "0" | ContInf == "1")
 
-
+#Filtering to only infected individuals for tolerance metrics
+IndBehavI<-IndBehav8%>%
+  filter(Infection == "1")
 
 
 ```
@@ -708,17 +706,18 @@ ggplot(IndBehavI, aes(BehavTol, BehavVig))+
   geom_smooth(method="lm")+
   geom_jitter()+
   theme_classic()+
-  theme(legend.position = "none")
+  theme(legend.position = "none")+
+  facet_wrap(~Sex)
 
 
 #This next graph is using the tolerance metric calculated as the point tolerance change between timepoints
-
-ggplot(IndBehavI, aes(PTol, BehavVig))+
-  geom_smooth(method="lm")+
-  geom_jitter()+
-  theme_classic()+
-  facet_wrap(~TrialTime)+
-  theme(legend.position = "none")
+# 
+# ggplot(IndBehavI, aes(PTol, BehavVig))+
+#   geom_smooth(method="lm")+
+#   geom_jitter()+
+#   theme_classic()+
+#   facet_wrap(~TrialTime)+
+#   theme(legend.position = "none")
 
 
 
@@ -753,7 +752,7 @@ ggplot(IndBehavI, aes(BehavVig, AUC2))+
 
 
 #How does individual condition relate to behavioral tolerance
-ggplot(IndBehavI, aes(BehavTol, PreSMI))+
+ggplot(IndBehavI, aes(BehavTol, ScPSMI))+
   geom_smooth(method="lm")+
   geom_jitter()+
   theme_classic()+
@@ -761,7 +760,7 @@ ggplot(IndBehavI, aes(BehavTol, PreSMI))+
   theme(legend.position = "none")
 
 #How does individual condition relate to behavioral tolerance
-ggplot(IndBehavI, aes(BehavVig, PreSMI))+
+ggplot(IndBehavI, aes(BehavVig, ScPSMI))+
   geom_smooth(method="lm")+
   geom_jitter()+
   theme_classic()+
@@ -769,8 +768,11 @@ ggplot(IndBehavI, aes(BehavVig, PreSMI))+
   theme(legend.position = "none")
 
 #How does Tissue tolerance relate to behavioral tolerance
+IndBehavI1<- IndBehavI %>%
+  filter(ScTisTol <1 & ScTisTol >-4)
 
-ggplot(IndBehavI, aes(BehavTol, TisTol))+
+
+ggplot(IndBehavI1, aes(ScBehavTol, ScTisTol))+
   geom_smooth(method="lm")+
   geom_jitter()+
   theme_classic()+
@@ -795,7 +797,12 @@ ggplot(IndBehav8, aes(Sex, TisTol))+
   theme_classic()+
   theme(legend.position = "none")
 
-
+ggplot(IndBehavI, aes(y=PolyArea, x=BehavVig))+
+  geom_smooth(method="lm")+
+  geom_jitter()+
+  theme_classic()+
+  facet_wrap(~Sex)+
+  theme(legend.position = "none")
 
 ```
 
@@ -813,6 +820,8 @@ For uninfected and infected individuals only:
 
 For infected individuals only: 
 
+Does activity predict the intensity of infection?
+
 
   Is there sexual variation in host behavioral tolerance and behavioral vigor? 
 
@@ -821,12 +830,14 @@ For infected individuals only:
   Do hosts with lower behavioral tolerance have higher behavior resilience (i.e. how hosts behave once they have started to clear infection/have cleared infection)
 
   Is there sexual variation in individuals behavioral resilience? 
+  
+  polygon area as resilience and how this relates to other metrics
 
 
 ```{r more specific visualization of explanatory variables mentioned above, warning = FALSE, include=FALSE}
 
-pairs(~AvgVel+Sex+Infection+AUC2+Died+NRatebf+VarVel+BehavTol+BehavVig+TisTol, lower.panel=panel.smooth, diag.panel=panel.hist, 
-upper.panel=panel.cor, data=IndBehav7)
+pairs(~AvgVel+Sex+Infection+AUC2+Died+NRatebf+VarVel+BehavTol+BehavVig+TisTol+ResidPLength+Treatment, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav8)
 
 ```
 
@@ -836,8 +847,8 @@ upper.panel=panel.cor, data=IndBehav7)
 
 ```{r visual inspection of variables that will be used in the analysis, warning= FALSE}
 
-pairs(~AvgVel+VarVel+Sex+Infection+TrialTime, lower.panel=panel.smooth, diag.panel=panel.hist, 
-upper.panel=panel.cor, data=IndBehav7)
+pairs(~AvgVel+VarVel+Sex+Infection+TrialTime+Treatment+ResidPLength, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav8)
 
 ```
 
@@ -852,7 +863,7 @@ This analysis uses the average velocity for each individual at each trial point.
 We will use a linear mixed model to analyze how average velocity differs by infection status and sexual variation. FishID is included as a random term to allow for non-independence of individuals due to multiple measurements per individual across time.
 
 * Deterministic
- + $AvgVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $a_{i}$
+ + $AvgVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection * $b_{3}$Sex + $b_{4}$ScPSMI + $b_{5}$ScRPLength + $b_{6}$Treatment + $a_{i}$
 
 * Stochastic
   + AvgVel ~ *N*($AvgVel_{det}$, $\sigma^{2}$) 
@@ -860,8 +871,12 @@ We will use a linear mixed model to analyze how average velocity differs by infe
   
 * Fixed
   + TrialTime
-  + Infection
-  +  Sex 
+  + Infection status
+  + Sex 
+  + An interaction between Sex and Infection status
+  + Scaled Pre-infection SMI
+  + Scaled residuals from length and sex
+  + VIE Treatment 
 * Random
   + fishID
   
@@ -871,7 +886,7 @@ We will use a linear mixed model to analyze how average velocity differs by infe
 
 #Fit a linear model for checking what explanatory factors are important for Average Velocity
 #Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
-AvgVelLM<-lmer(AvgVel~TrialTime+Infection*Sex+ScPSMI+(1|fishID), IndBehav8)
+AvgVelLM<-lmer(AvgVel~TrialTime+Infection*Sex+ScPSMI+ScRPLength+Treatment+(1|fishID), IndBehav8)
 
 
 
@@ -920,8 +935,7 @@ AvgVelbyTT=visreg(AvgVelLM, scale="response", "TrialTime", partial=T, gg=TRUE)+
   theme(legend.position="none")+
   ylab("Average Velocity (cm/s)")+
   xlab(" ")+
-  theme(text=element_text(size=22))+
-  annotate("text",x=0.25, y=5, label = "p = 5.11e-10", size=9, fontface = "italic")
+  theme(text=element_text(size=22))
 #Print the graph
 print(AvgVelbyTT)
 
@@ -936,10 +950,23 @@ AvgVelbySex=visreg(AvgVelLM, scale="response", "Sex", partial=T, gg=TRUE)+
   theme(legend.position="none")+
   ylab("Average Velocity (cm/s)")+
   xlab(" ")+
-  theme(text=element_text(size=22))+
-  annotate("text",x=0.25, y=5, label = "p = 0.027", size=9, fontface = "italic")
+  theme(text=element_text(size=22))
 #Print the graph
 print(AvgVelbySex)
+
+
+```
+
+```{r visualizing Sex by PreSMI, warning=FALSE, ignore=TRUE, include=FALSE}
+#TrialTimeGraph
+AvgVelbySMI=visreg(AvgVelLM, scale="response", "ScPSMI", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Average Velocity (cm/s)")+
+  xlab("Scaled Pre-infection SMI (mm/g)")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(AvgVelbySMI)
 
 
 ```
@@ -953,26 +980,29 @@ This analysis uses the variance of velocity for each individual at each trial po
 We will use a linear mixed model to analyze how variance in velocity differs by infection status and sexual variation. FishID is included as a random term to allow for non-independence of individuals due to multiple measurements per individual across time.
 
 * Deterministic
- + $VarVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $a_{i}$
+ + $log(VarVel_{det})$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $b_{4}$ScPSMI + $b_{5}$ScRPLength + $b_{6}$Treatment + $a_{i}$
 
 * Stochastic
-  + VarVel ~ *N*($VarVel_{det}$, $\sigma^{2}$) 
+  + log(VarVel) ~ *N*($log(VarVel_{det})$, $\sigma^{2}$) 
   + $a_{i}$ ~ *N*(0, $\sigma^{2}_{fishID}$) 
   
 * Fixed
   + TrialTime
   + Infection
   +  Sex 
+  + Scaled Pre-infection SMI
+  + Scaled residuals from length and sex
+  + VIE Treatment 
 * Random
   + fishID
   
   
 
-```{r fitting the variance of velocity model, warning=FALSE}
+```{r fitting the variance of velocity model, warning=FALSE, include=FALSE}
 
 #Fit a linear model for checking what explanatory factors are important for Variance in Velocity
 #Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
-VarVelLM<-lmer(log(VarVel)~Sex*Infection+ScPSMI+TrialTime+(1|fishID),IndBehav8)
+VarVelLM<-lmer(log(VarVel)~Sex*Infection+ScPSMI+TrialTime+ScRPLength+Treatment+(1|fishID),IndBehav8) 
 
 #Summary to see the relationship of the variables. #Summary to see the relagaussian()tionship of the variables. 
 summary(VarVelLM)
@@ -982,7 +1012,7 @@ summary(VarVelLM)
 \subsubsection{Validate that the model fits well and there are no problems}
 
 
-```{r model validation for the Variance in velocity model, warning=FALSE}
+```{r model validation for the Variance in velocity model, warning=FALSE, include=FALSE}
 
 #Using the check_model function from the perforamnce package to check the model validation
 
@@ -1003,7 +1033,7 @@ testDispersion(sim_residuals_VarVelLM)
 \subsubsection{Testing the significance of factors in our model using a Kenward-Rodgers F test}
 
 
-```{r using anova to perform a kenward-Rodgers F test for the variance model, warning=FALSE}
+```{r using anova to perform a kenward-Rodgers F test for the variance model, warning=FALSE, include=FALSE}
 
 #F test to test for signficance of slope of variables
 Anova(VarVelLM, test="F", type=3)
@@ -1012,7 +1042,7 @@ Anova(VarVelLM, test="F", type=3)
 
 \subsubsection{Visualize the important explanatory factors for variance of velocity}
 
-```{r exploratory statistics, warning=FALSE}
+```{r visual for variance in velocity, warning=FALSE, include=FALSE}
 
 #VariancebySex
 VarVelbySex<-visreg(VarVelLM, scale="response", "Sex", partial=T, gg=TRUE)+
@@ -1020,27 +1050,10 @@ VarVelbySex<-visreg(VarVelLM, scale="response", "Sex", partial=T, gg=TRUE)+
   theme(legend.position="none")+
   ylab("Variance in Velocity (cm/s)")+
   xlab(" ")+
-  theme(text=element_text(size=22))+
-  annotate("text",x=0.25, y=5, label = "p = 0.016", size=9, fontface = "italic")
+  theme(text=element_text(size=22))
 
 #Print the graph
 print(VarVelbySex)
-
-# #Variance by sex and split by infection
-# Infnames<-c("Uninfected","Infected")
-# names(Infnames)<-c("0","1")
-# 
-# VarVelbySexnInf<-visreg(VarVelLM, scale="response", "Sex", "Infection", partial=T, gg=TRUE)+
-#   theme_classic()+
-#   theme(legend.position="none")+
-#   ylab("Variance in Velocity (cm/s)")+
-#   xlab(" ")+
-#   theme(text=element_text(size=22))+
-#   annotate("text",x=0.25, y=5, label = "p = 0.018", size=9, fontface = "italic")+
-#   facet_wrap(~Infection, labeller = labeller(Infection = Infnames))
-# 
-# #Print the graph
-# print(VarVelbySexnInf)
 
 ```
 
@@ -1052,8 +1065,8 @@ print(VarVelbySex)
 
 ```{r visual inspection of variables that will be used in the analysis for change in behavior, warning=FALSE}
 
-pairs(~ChBehav+Sex+Infection+TrialTime+PreSMI+AUC2, lower.panel=panel.smooth, diag.panel=panel.hist, 
-upper.panel=panel.cor, data=IndBehav7)
+pairs(~ChBehav+Sex+Infection+TrialTime+PreSMI+AUC2+Treatment+ResidPLength, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav8)
 
 ```
 
@@ -1063,7 +1076,7 @@ upper.panel=panel.cor, data=IndBehav7)
 We will use a linear mixed model to analyze how Change in velocity differs by infection status and sexual variation. FishID is included as a random term to allow for non-independence of individuals due to multiple measurements per individual across time.
 
 * Deterministic
- + $ChVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection + $b_{3}$Sex + $a_{i}$
+ + $ChVel_{det}$ = a + $b_{1}$TrialTime + $b_{2}$Infection * $b_{3}$Sex + $b_{4}$ScRPLength + $b_{5}$Treatment + $a_{i}$
 
 * Stochastic
   + ChVel ~ *N*($ChVel_{det}$, $\sigma^{2}$) 
@@ -1073,6 +1086,10 @@ We will use a linear mixed model to analyze how Change in velocity differs by in
   + TrialTime
   + Infection
   +  Sex 
+  + Interaction between Sex and infection status
+  + Scaled residuals from length and sex
+  + VIE treatment of the fish
+  
 * Random
   + fishID
   
@@ -1080,10 +1097,12 @@ We will use a linear mixed model to analyze how Change in velocity differs by in
 
 #Fit a linear model for checking what explanatory factors are important for Variance in Velocity
 #Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
-ChVelLM<-lmer(ChBehav~TrialTime+Infection*Sex+ScChSMI+(1|fishID), IndBehav8)
+ChVelLM<-lmer(ChBehav~TrialTime+Infection*Sex+ScChSMI+ScRPLength+Treatment+(1|fishID), IndBehav8)
 
 #Summary to see the relationship of the variables. 
 summary(ChVelLM)
+
+
 
 ```
   
@@ -1130,8 +1149,7 @@ ChVelbyTT=visreg(ChVelLM, scale="response", "TrialTime", partial=T, gg=TRUE)+
   theme(legend.position="none")+
   ylab("Change in Velocity (cm/s)")+
   xlab(" ")+
-  theme(text=element_text(size=22))+
-  annotate("text",x=0.25, y=5, label = "p = 4.12e-10", size=9, fontface = "italic")
+  theme(text=element_text(size=22))
 #Print the graph
 print(ChVelbyTT)
 
@@ -1141,9 +1159,335 @@ print(ChVelbyTT)
 \section{Is there sexual variation in host behavioral tolerance and behavioral vigor?}
 
 \subsection{Visually inspection of the explanatory variables that will be used in the analyses}
-```{rvsiaully inspecting covariates for the tolerance and vigor model, warning=FALSE}
+```{r vsiaully inspecting covariates for the tolerance model, warning=FALSE}
 
+pairs(~ScTisTol+Sex+ScPSMI+ScVarvelBef+ScBehavTol+ScBehavVig+ScRPLength, lower.panel=panel.smooth, diag.panel=panel.hist,
+upper.panel=panel.cor, data=IndBehav8)
+
+```
+
+\subsection{What factors are important for host behavioral vigor and do is there any sexual variation in host behavioral vigor?}
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear model to analyze how behavioral vigor differs by sexual variation and other important host traits. Given each host only has one behavioral vigor measure, we do not need the fishID random effect used in previous models/ 
+
+* Deterministic
+ + $BehavVig_{det}$ = a + $b_{1}$Sex * $b_{2}$ScPSMI + $b_{3}$ScVarVelBef +
+
+* Stochastic
+  + BehavVig ~ *N*($BehavVig_{det}$, $\sigma^{2}$) 
+
+  
+* Fixed
+  + Sex 
+  + Scaled Pre-infection SMI
+  +Scaled variance in velocity before infection
+
+
+```{r fitting the Behavioral Vigor model, warning=FALSE}
+
+#Fit a linear model for checking what explanatory factors are important for Variance in Velocity
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+BehavVigLM<-glm(BehavVig~Sex*ScPSMI+ScVarvelBef+ScRPLength+Treatment, family=Gamma("log"), IndBehav8)
+
+#Summary to see the relationship of the variables. 
+summary(BehavVigLM)
 
 
 ```
 
+
+\subsubsection{Validate that the model fits well and there are no problems}
+
+```{r model validation for the behavior vigor model, warning=FALSE}
+
+#Using the check_model function from the perforamnce package to check the model validation
+
+check_model(BehavVigLM)
+
+```
+
+\subsubsection{Testing the significance of factors in our model}
+
+```{r checking significance of fixed effects, warning=FALSE}
+
+summary(BehavVigLM)
+
+```
+
+\subsubsection{Visualize the important explanatory factors for behavioral vigor}
+
+```{r visualing the pattern between behavioral vigor and Variance}
+#Variance in behaivor
+BehavVigbyVar=visreg(BehavVigLM, scale="response", "ScVarvelBef", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Behavioral Vigor (cm/s)")+
+  xlab("Variance in pre-infection behavior (cm/s^2)")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(BehavVigbyVar)
+```
+
+```{r visualing the pattern between behavioral vigor and SMI}
+#TrialTimeGraph
+BehavVigbySMI=visreg(BehavVigLM, scale="response", "ScPSMI", "Sex", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Behavioral Vigor (cm/s)")+
+  xlab("Scaled Pre-infeciton mass index")+
+  theme(text=element_text(size=22))+
+  facet_wrap(~Sex)
+#Print the graph
+print(BehavVigbySMI)
+```
+
+\subsection{What factors are important for host behavioral tolerance and do is there any sexual variation in host behavioral tolerance?}
+
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear model to analyze how behavioral tolerance differs by sexual variation and other important host traits. Given each host only has one behavioral tolerance measure, we do not need the fishID random effect used in previous models/ 
+
+* Deterministic
+ + $BehavTol_{det}$ = a + $b_{1}$Sex + $b_{2}$ScRPLength + $b_{3}$ScVarVelBef + $b_{4}$ScPSMI + $b_{5}$ScBehavVig + $b_{5}$ScTisTol
+
+* Stochastic
+  + BehavTol ~ *N*($BehavTol_{det}$, $\sigma^{2}$) 
+
+  
+* Fixed
+  + Sex 
+  + Scaled Pre-infection SMI
+  +Scaled variance in velocity before infection
+  + Scaled behavioral vigor
+  
+  
+```{r linear model for behavorial tolerance}
+#Fit a linear model for behavioral tolerance
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+BehavTolLM<-lm(BehavTol~Sex*ScRPLength+ScVarvelBef+ScPSMI+ScTisTol+ScBehavVig+Treatment, IndBehavI)
+
+
+
+
+#Summary to see the relationship of the variables. 
+summary(BehavTolLM)
+
+```
+  
+\subsubsection{Validate that the model fits well and there are no problems}
+
+```{r model validation for the behavior tolerance model, warning=FALSE}
+
+#Using the check_model function from the perforamnce package to check the model validation
+
+check_model(BehavTolLM)
+
+```
+
+
+\subsubsection{Testing the significance of factors in our model}
+
+```{r checking significance of fixed effects for tolerance model, warning=FALSE}
+
+summary(BehavTolLM)
+
+```
+
+
+\subsubsection{Visualize the important explanatory factors for behavioral tolerance}
+
+
+```{r visualing the pattern between behavioral Tol and Vig}
+#TrialTimeGraph
+BehavTolbyVig=visreg(BehavTolLM, scale="response", "ScBehavVig", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Behavioral Tolerance (cm/s/worm)")+
+  xlab("Scaled behavioral vigor (cm/s)")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(BehavTolbyVig)
+```
+
+
+```{r visualing the pattern between behavioral tolerance and SMI}
+#SMI graph
+BehavTolbySMI=visreg(BehavTolLM, scale="response", "ScPSMI", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Behavioral Tolerance (cm/s)")+
+  xlab("Scaled Pre-infeciton mass index")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(BehavTolbySMI)
+```
+
+
+\subsection{What factors are important for host infection intensity over the course of infection and do is there any sexual variation in host infection intensity?}
+
+\subsection{Visually inspection of the explanatory variables that will be used in the analyses}
+```{r vsiaully inspecting covariates for the tolerance and vigor model, warning=FALSE}
+
+pairs(~AUC2+Sex+ScPSMI+ScVarvelBef+ScBehavTol+ScBehavVig+PreLength+Treatment, lower.panel=panel.smooth, diag.panel=panel.hist, 
+upper.panel=panel.cor, data=IndBehav8)
+
+```
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear model to analyze how infection intensity differs by sexual variation and other important host traits. Given each host only has one infection intensity measure, we do not need the fishID random effect used in previous models.
+
+* Deterministic
+ + $AUC_{det}$ = a + $b_{1}$Sex * $b_{2}$ScBehavVig + $b_{3}$ScVarVelBef + $b_{4}$ScPSMI + $b_{5}$ScRPLength
+
+* Stochastic
+  + AUC ~ *N*($AUC_{det}$, $\sigma^{2}$) 
+
+  
+* Fixed
+  + Sex 
+  + Scaled behavioral vigor 
+  + Interaction between Sex and Behavioral vigor
+  + Scaled Pre-infection SMI
+  + Scaled variance in velocity before infection 
+  + Scaled Residuals of Length and Sex 
+  + Visible implant elastomer treatment
+  
+  
+```{r linear model for Infection Intensity}
+#Fit a linear model for behavioral tolerance
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+AUCLM<-glm(AUC2~Sex*ScBehavVig+ScBehavVig+ScVarvelBef+ScPSMI+ScRPLength+Treatment+Sex:ScPSMI, family=Gamma(link="log"), IndBehavI)
+
+#Summary to see the relationship of the variables. 
+summary(AUCLM)
+
+```
+
+\subsubsection{Validate that the model fits well and there are no problems}
+
+
+```{r model validation for the AUC model, warning=FALSE}
+
+#Using the check_model function from the perforamnce package to check the model validation
+
+check_model(AUCLM)
+
+```
+
+
+\subsubsection{Testing the significance of factors in our model}
+
+```{r checking significance of fixed effects for AUC model, warning=FALSE}
+
+summary(AUCLM)
+
+```
+
+\subsubsection{Visualize the important explanatory factors for infection intensity}
+
+
+```{r visualing the pattern between Infection intensity and behav Vig, warning=FALSE}
+#Behavioral Vigor graph
+InfIntbyVarvel=visreg(AUCLM, scale="response", "ScVarvelBef", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Infection intensity")+
+  xlab("Scaled variance in velocity before infection")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(InfIntbyVarvel)
+```
+
+
+```{r visualing the pattern between Infection intensity and Variance in velocity, Warning=FALSE}
+#Behavioral Vigor graph
+InfIntbyVig=visreg(AUCLM, scale="response", "ScBehavVig", "Sex", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Infection intensity")+
+  xlab("Scaled Behavioral Vigor")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(InfIntbyVig)
+```
+
+```{r visualing the pattern between Infection intensity and SMI by sex in velocity, Warning=FALSE}
+#Sex by SMI graph
+InfIntbyScPSMI=visreg(AUCLM, scale="response", "ScPSMI", "Sex", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Infection intensity")+
+  xlab("Scaled body condition")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(InfIntbyScPSMI)
+```
+
+```{r visualing the pattern between Infection intensity and Scaled mass index, Warning=FALSE}
+#Behavioral Vigor graph
+InfIntbySMI=visreg(AUCLM, scale="response", "ScPSMI", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Infection intensity")+
+  xlab("Scaled body condition")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(InfIntbySMI)
+```
+
+```{r visualing the pattern between Infection intensity and Sex, Warning=FALSE}
+#Behavioral Vigor graph
+InfIntbySex=visreg(AUCLM, scale="response", "Sex", partial=T, gg=TRUE)+
+  theme_classic()+
+  theme(legend.position="none")+
+  ylab("Infection intensity")+
+  xlab("Sex")+
+  theme(text=element_text(size=22))
+#Print the graph
+print(InfIntbySex)
+```
+
+
+\subsection{What factors are important for the change of hosts behavior over fitness space and ifnection?}
+
+\subsubsection{Description, development, and fitting of linear model for the analysis}
+
+We will use a linear model to analyze how host total movement over fitness space differs by sexual variation and other important host traits. Given each host only has one total movement over fitness space measure, we do not need the fishID random effect used in previous models.
+
+* Deterministic
+ + $PolyArea_{det}$ = a + $b_{1}$Sex + $b_{2}$ScPSMI + $b_{3}$ScVarVelBef + $b_{4}$ScBehavVig
+
+* Stochastic
+  + PolyArea ~ *N*($PolyArea_{det}$, $\sigma^{2}$) 
+
+  
+* Fixed
+  + Sex 
+  + Scaled Pre-infection SMI
+  + Scaled variance in velocity before infection 
+  + Scaled behavioral vigor 
+
+
+```{r poly area model, warning=FALSE, include=FALSE, echo =FALSE, eval = FALSE}
+
+IndBehavI <- IndBehavI %>%
+  na.omit(PolyArea)
+
+#Fit a linear model for behavioral tolerance
+#Note this is a linear mixed model because we have multiple measures per fish and therefore, need to account for non-independence between measures. 
+PALM<-glm(PolyArea~ScVarvelBef+ScPSMI+Sex*ScBehavVig, family=Gamma(link="log"), IndBehavI)
+
+summary(IndBehavI$PolyArea)
+
+#Summary to see the relationship of the variables. 
+summary(PALM)
+
+check_model(PALM)
+```
+
+  
+  
