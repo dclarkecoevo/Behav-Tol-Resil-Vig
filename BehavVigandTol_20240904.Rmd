@@ -1,5 +1,5 @@
 ---
-title: "BehavVigInfManuscript"
+title: "Host activity before and during infection influences resulting parasite intensities"
 author: "David R. Clark"
 date: "2024-09-04"
 output: pdf_document
@@ -1288,7 +1288,7 @@ Anova(InfIntLMInf, test="F", type=3)
 \subsubsection{Visualize the important explanatory factors for infection intensity for infected individuals}
 
 
-```{r visualizing  Change in activity by infeciton intensity, warning=FALSE}
+```{r visualizing Change in activity by infeciton intensity, warning=FALSE}
 
 #Change in behavior by 
 #Extracting fit and residual
