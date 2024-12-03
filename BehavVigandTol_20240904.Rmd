@@ -402,9 +402,6 @@ IndBehavChI<-IndBehavChI %>%
   mutate(ScWormaf = scale(Wormaf)) %>%
   mutate(ScChBehav = scale(ChBehav)) 
 
-
-pairs(~ChBehav+Sex+Infection+TrialTime+PreSMI+AUC+Treatment+NRatebf+Wormaf, lower.panel=panel.smooth, diag.panel=panel.hist, 
-upper.panel=panel.cor, data=IndBehavChI)
 cpsex=c("darkseagreen4","lightsalmon3")
 ```
 
